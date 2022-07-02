@@ -32,7 +32,6 @@ use zenoh::prelude::{SplitBuffer, ZFuture};
 pub mod nodes;
 
 pub mod config;
-pub mod hash_ring;
 pub mod messages;
 pub mod metadata;
 pub mod store;
