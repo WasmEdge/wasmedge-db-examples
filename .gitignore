@@ -1,3 +1,2 @@
-target
-kvs.log
-route.log
+/target
+/*.log
