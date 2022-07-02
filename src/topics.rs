@@ -13,9 +13,6 @@ const USER_RESPONSE_TOPIC: &str = "user_response";
 // The topic on which clients receive responses from the routing tier.
 const USER_KEY_ADDRESS_TOPIC: &str = "user_key_address";
 
-// The topic on which cache nodes listen for updates from the KVS.
-const CACHE_UPDATE_TOPIC: &str = "cache_update";
-
 // The topic on which KVS servers listen for new node announcments.
 const NODE_JOIN_TOPIC: &str = "node_join";
 
@@ -61,25 +58,6 @@ const ROUTING_REPLICATION_RESPONSE_TOPIC: &str = "routing_replication_response";
 // The topic on which routing servers listen for replication factor change
 // announcements from the monitoring system.
 const ROUTING_REPLICATION_CHANGE_TOPIC: &str = "routing_replication_change";
-
-// The topic on which monitoring threads listen for KVS responses when
-// retrieving metadata.
-const MONITORING_RESPONSE_TOPIC: &str = "monitoring_response";
-
-// The topic on which the monitoring system waits for a response from KVS nodes
-// after they have finished departing.
-const DEPART_DONE_TOPIC: &str = "depart_done";
-
-// The topic on which the monitoring system listens for cluster membership
-// changes.
-const MONITORING_NOTIFY_TOPIC: &str = "monitoring_notify";
-
-// The topic on which the monitoring nodes listens for performance feedback from
-// clients.
-const FEEDBACK_REPORT_TOPIC: &str = "feedback_report";
-
-// The topic on which benchmark nodes listen for triggers.
-const BENCHMARK_COMMAND_TOPIC: &str = "benchmark_command";
 
 /// Provides the topic paths for addressing a specific thread of a specific _KVS_ node.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -350,138 +328,4 @@ impl RoutingThread {
             .try_into()
             .unwrap()
     }
-}
-
-/// Provides the topic paths for addressing a specific _monitoring_ node.
-pub struct MonitoringThread {
-    /// The ID of the monitoring node.
-    pub node_id: String,
-}
-
-impl MonitoringThread {
-    /// Addresses the given monitoring node.
-    pub fn new(node_id: String) -> Self {
-        Self { node_id }
-    }
-
-    /// Monitoring nodes are informed about node joins and departures on this topic.
-    ///
-    /// Sent messages are of type [`Notify`][crate::messages::Notify].
-    pub fn notify_topic(prefix: &str) -> String {
-        format!("{}/{}", prefix, MONITORING_NOTIFY_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-
-    /// Monitoring nodes are informed about finished departures on this topic.
-    ///
-    /// Sent messages are of type [`Departed`][crate::messages::Departed].
-    pub fn depart_done_topic(&self, prefix: &str) -> String {
-        format!("{}/{}/{}", prefix, self.node_id, DEPART_DONE_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-
-    /// Monitoring nodes expect responses on this topic.
-    ///
-    /// Sent messages are of type [`Response`][crate::messages::Response].
-    pub fn response_topic(&self, prefix: &str) -> String {
-        format!("{}/{}/{}", prefix, self.node_id, MONITORING_RESPONSE_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-
-    /// Benchmarking nodes send [`UserFeedback`][crate::messages::user_feedback::UserFeedback]
-    /// messages to the monitoring nodes on this topic.
-    pub fn feedback_report_topic(prefix: &str) -> String {
-        format!("{}/{}", prefix, FEEDBACK_REPORT_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-}
-
-/// Not used right now (we only send on this topic, but never subscribe to it)
-#[doc(hidden)]
-pub struct CacheThread {
-    node_id: String,
-    tid: u32,
-}
-
-#[allow(missing_docs)]
-impl CacheThread {
-    pub fn new(ip: String, tid: u32) -> Self {
-        Self { node_id: ip, tid }
-    }
-
-    pub fn cache_update_topic(&self, prefix: &str) -> String {
-        format!(
-            "{}/{}/{}/{}",
-            prefix, self.node_id, CACHE_UPDATE_TOPIC, self.tid
-        )
-        .try_into()
-        .unwrap()
-    }
-}
-
-/// Addresses a management node, which is reponsible for booting up and shutting down nodes.
-#[doc(hidden)]
-pub struct ManagementThread {
-    /// The id of the management node.
-    pub node_id: String,
-}
-
-impl ManagementThread {
-    const QUERY_FUNC_NODES_TOPIC: &'static str = "query_func_nodes";
-    const ADD_NODES_TOPIC: &'static str = "add_nodes";
-    const REMOVE_NODE_TOPIC: &'static str = "remove_node";
-
-    pub fn singleton() -> Self {
-        Self {
-            node_id: "management".into(),
-        }
-    }
-
-    /// Request additional nodes.
-    ///
-    /// The messages sent on this topic should be of type
-    /// [`AddNodes`][crate::messages::management::AddNodes].
-    pub fn add_nodes_topic(&self, prefix: &str) -> String {
-        format!("{}/{}/{}", prefix, self.node_id, Self::ADD_NODES_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-
-    /// Tells the management node to shut down a node.
-    ///
-    /// The messages sent on this topic should be of type
-    /// [`RemoveNode`][crate::messages::management::RemoveNode].
-    pub fn remove_node_topic(&self, prefix: &str) -> String {
-        format!("{}/{}/{}", prefix, self.node_id, Self::REMOVE_NODE_TOPIC)
-            .try_into()
-            .unwrap()
-    }
-
-    /// Topic on which
-    /// [`FuncNodesQuery`][crate::messages::management::FuncNodesQuery]
-    /// messages can be sent.
-    pub fn query_func_nodes_topic(&self, prefix: &str) -> String {
-        format!(
-            "{}/{}/{}",
-            prefix,
-            self.node_id,
-            Self::QUERY_FUNC_NODES_TOPIC
-        )
-        .try_into()
-        .unwrap()
-    }
-}
-
-/// Topic on which commands to benchmark nodes are sent.
-pub fn benchmark_topic(thread_id: u32, zenoh_prefix: &str) -> String {
-    format!(
-        "{}/benchmark/{}/{}",
-        zenoh_prefix, BENCHMARK_COMMAND_TOPIC, thread_id,
-    )
-    .try_into()
-    .unwrap()
 }
