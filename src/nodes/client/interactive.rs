@@ -40,7 +40,7 @@ pub fn run_interactive<'a>(
         .collect();
 
     let timeout = Duration::from_secs(10);
-    let client = ClientNode::new(
+    let mut client = ClientNode::new(
         format!("client-{}", uuid::Uuid::new_v4()),
         0,
         routing_threads,
@@ -48,6 +48,8 @@ pub fn run_interactive<'a>(
         zenoh,
         zenoh_prefix,
     )?;
+
+    smol::block_on(client.init_tcp_connections())?; // init TCP connections to routing nodes
     client.run_interactive(stdin, stdout, stderr, fail_fast)
 }
 
