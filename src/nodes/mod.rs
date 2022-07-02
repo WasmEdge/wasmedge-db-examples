@@ -1,6 +1,6 @@
 //! Abstractions for the node types, including the main types [`KvsNode`], [`RoutingNode`], and [`ClientNode`].
 
-pub use self::{client::ClientNode, kvs::KvsNode, routing::RoutingNode};
+pub use self::client::ClientNode;
 use crate::{
     messages::{cluster_membership::ClusterInfo, TcpMessage},
     topics::RoutingThread,
@@ -12,9 +12,6 @@ use smol::{io::AsyncWriteExt, net::TcpStream};
 use std::{convert::TryInto, time::Duration};
 
 pub mod client;
-pub mod kvs;
-pub mod monitoring;
-pub mod routing;
 
 /// Sends the given message on the given tcp stream.
 ///
