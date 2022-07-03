@@ -45,7 +45,6 @@ pub fn run_interactive<'a>(
         0,
         routing_threads,
         timeout,
-        zenoh,
         zenoh_prefix,
     )?;
 

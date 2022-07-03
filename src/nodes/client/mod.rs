@@ -103,7 +103,6 @@ impl ClientNode {
         thread_id: u32,
         routing_threads: Vec<RoutingThread>,
         timeout: Duration,
-        zenoh: Arc<zenoh::Session>,
         zenoh_prefix: String,
     ) -> eyre::Result<Self> {
         let ut = ClientThread::new(node_id, thread_id);
