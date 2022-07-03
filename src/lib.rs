@@ -96,20 +96,3 @@ impl ZenohValueAsString for zenoh::prelude::Value {
         Ok(String::from_utf8(self.payload.contiguous().into_owned())?)
     }
 }
-
-/// Used by unit and integration tests to share the same `zenoh` instance.
-///
-/// It's not recommended to use this function outside of this crate.
-#[doc(hidden)]
-pub fn zenoh_test_instance() -> Arc<zenoh::Session> {
-    /// Global zenoh session used for unit and integration tests.
-    static TEST_ZENOH: once_cell::sync::Lazy<Arc<zenoh::Session>> =
-        once_cell::sync::Lazy::new(|| {
-            Arc::new(
-                zenoh::open(zenoh::config::Config::default())
-                    .wait()
-                    .expect("failed to open zenoh session"),
-            )
-        });
-    TEST_ZENOH.clone()
-}
