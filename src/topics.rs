@@ -10,9 +10,6 @@ const USER_RESPONSE_TOPIC: &str = "user_response";
 // The topic on which clients receive responses from the routing tier.
 const USER_KEY_ADDRESS_TOPIC: &str = "user_key_address";
 
-// The topic on which routing servers listen for cluster membership requests.
-const SEED_TOPIC: &str = "seed";
-
 /// Provides the topic paths for addressing a specific thread of a specific _KVS_ node.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct KvsThread {
@@ -71,25 +68,13 @@ impl ClientThread {
 /// Each KVS has a configured routing node that it should address.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RoutingThread {
-    /// The ID if the routing node.
-    pub node_id: String,
     /// The addressed thread ID of the routing node.
     pub thread_id: u32,
 }
 
 impl RoutingThread {
-    /// KVS node threads send a `"join"` request on this topic on startup.
-    ///
-    /// The routing node should reply with a
-    /// [`ClusterMembership`][crate::messages::cluster_membership::ClusterMembership]
-    /// message. Unlike most other messages in this crate, the `"join"` is sent as
-    /// zenoh [`get`][zenoh::Workspace::get] requests with an immediate reply.
-    pub fn seed_topic(prefix: &str) -> String {
-        format!("{}/{}", prefix, SEED_TOPIC).try_into().unwrap()
-    }
-
     /// Addresses the given thread on the given routing node.
-    pub fn new(node_id: String, thread_id: u32) -> Self {
-        Self { node_id, thread_id }
+    pub fn new(thread_id: u32) -> Self {
+        Self { thread_id }
     }
 }

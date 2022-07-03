@@ -1,15 +1,11 @@
 //! Abstractions for the node types, including the main types [`KvsNode`], [`RoutingNode`], and [`ClientNode`].
 
 pub use self::client::ClientNode;
-use crate::{
-    messages::{cluster_membership::ClusterInfo, TcpMessage},
-    topics::RoutingThread,
-    ZenohValueAsString,
-};
+use crate::messages::TcpMessage;
 use eyre::{bail, Context};
-use futures::{AsyncReadExt, StreamExt};
+use futures::AsyncReadExt;
 use smol::{io::AsyncWriteExt, net::TcpStream};
-use std::{convert::TryInto, time::Duration};
+use std::convert::TryInto;
 
 pub mod client;
 
@@ -76,37 +72,4 @@ pub async fn receive_tcp_message(
             )
         })
         .map(Some)
-}
-
-/// Request cluster topology from a seed node.
-pub async fn request_cluster_info(
-    zenoh: &zenoh::Session,
-    zenoh_prefix: &str,
-) -> eyre::Result<ClusterInfo> {
-    let mut i = 0;
-    let membership = loop {
-        let replies = zenoh
-            .get(&RoutingThread::seed_topic(zenoh_prefix))
-            .await
-            .map_err(|e| eyre::eyre!(e))
-            .context("failed to query seed node")?;
-
-        let mut replies = replies.collect::<Vec<_>>().await;
-        match replies.as_mut_slice() {
-            [] if i < 30 => {
-                futures_timer::Delay::new(Duration::from_millis(100 * i)).await;
-                i += 1; // retry
-            }
-            [] => {
-                bail!("no replies received from seed node");
-            }
-            [reply] => {
-                // add all the addresses that seed node sent
-                break serde_json::from_str(&reply.sample.value.as_string()?)
-                    .context("failed to deserialize ClusterMembership")?;
-            }
-            _ => bail!("multiple replies received from seed node"),
-        };
-    };
-    Ok(membership)
 }

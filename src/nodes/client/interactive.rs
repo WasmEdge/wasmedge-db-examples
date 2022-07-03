@@ -1,9 +1,8 @@
 use super::ClientNode;
-use crate::{config::Config, lattice::Lattice, nodes::request_cluster_info, topics::RoutingThread};
+use crate::{config::Config, lattice::Lattice, topics::RoutingThread};
 use eyre::{anyhow, bail, Context};
 use std::{
     io::{BufRead, BufReader, Read, Write},
-    sync::Arc,
     time::Duration,
 };
 
@@ -26,17 +25,10 @@ pub fn run_interactive<'a>(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     fail_fast: bool,
-    zenoh: Arc<zenoh::Session>,
     zenoh_prefix: String,
 ) -> eyre::Result<()> {
-    let cluster_info = smol::block_on(request_cluster_info(&zenoh, &zenoh_prefix))?;
-
-    let routing_ids = cluster_info.routing_node_ids.iter();
-
-    let routing_threads: Vec<_> = routing_ids
-        .flat_map(|node_id| {
-            (0..config.threads.routing).map(move |i| RoutingThread::new(node_id.clone(), i))
-        })
+    let routing_threads: Vec<_> = (0..config.threads.routing)
+        .map(|i| RoutingThread::new(i))
         .collect();
 
     let timeout = Duration::from_secs(10);

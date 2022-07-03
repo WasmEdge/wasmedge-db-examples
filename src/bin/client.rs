@@ -6,9 +6,7 @@ use std::{
     io::Read,
     iter::Extend,
     path::PathBuf,
-    sync::Arc,
 };
-use zenoh::prelude::ZFuture;
 
 #[derive(FromArgs)]
 /// Rusty anna client
@@ -35,9 +33,6 @@ fn main() -> eyre::Result<()> {
     )
     .context("failed to parse config file")?;
 
-    let zenoh = zenoh::open(zenoh::config::Config::default())
-        .wait()
-        .map_err(|e| eyre::eyre!(e))?;
     let zenoh_prefix = anna_default_zenoh_prefix();
 
     let mut input = args
@@ -56,7 +51,6 @@ fn main() -> eyre::Result<()> {
         &mut std::io::stdout(),
         &mut std::io::stderr(),
         false,
-        Arc::new(zenoh),
         zenoh_prefix.to_owned(),
     )
 }
