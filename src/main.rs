@@ -1,4 +1,4 @@
-use anna::{config::Config, nodes::client};
+use anna_client_tokio::{config::Config, nodes::client};
 use argh::FromArgs;
 use eyre::Context;
 use std::{
