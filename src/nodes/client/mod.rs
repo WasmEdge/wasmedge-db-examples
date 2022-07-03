@@ -13,16 +13,16 @@ use crate::{
     },
     store::LatticeValue,
     topics::{ClientThread, KvsThread, RoutingThread},
-    AnnaError, ClientKey, Key, ZenohValueAsString,
+    AnnaError, ClientKey, Key,
 };
 use client_request::{ClientRequest, PendingRequest};
-use eyre::{anyhow, bail, eyre, Context, ContextCompat};
+use eyre::{anyhow, bail, Context, ContextCompat};
 use futures::{
     stream::{self, FusedStream, FuturesUnordered},
-    Future, FutureExt, Stream, StreamExt, TryStreamExt,
+    FutureExt, Stream, StreamExt, TryStreamExt,
 };
 use rand::prelude::IteratorRandom;
-use smol::{channel, net::TcpStream};
+use smol::net::TcpStream;
 use std::{
     collections::{HashMap, HashSet},
     iter::Extend,
@@ -44,14 +44,7 @@ pub struct ClientNode {
     /// The workspace used for communicating with KVS and routing nodes.
     zenoh_prefix: String,
 
-    /// Stream of incoming [`AddressResponse`] messages that are sent to this client node.
-    address_responses: channel::Receiver<zenoh::prelude::Sample>,
-    /// Stream of incoming [`Response`] messages that are sent to this client node.
-    responses: channel::Receiver<zenoh::prelude::Sample>,
-
     incoming_tcp_messages: Pin<Box<dyn TcpMessageStream>>,
-
-    receive_tasks: FuturesUnordered<Pin<Box<dyn Future<Output = eyre::Result<()>> + Send + Sync>>>,
 
     /// The node and thread ID of this client node.
     ///
@@ -115,49 +108,16 @@ impl ClientNode {
     ) -> eyre::Result<Self> {
         let ut = ClientThread::new(node_id, thread_id);
 
-        let receive_tasks: FuturesUnordered<
-            Pin<Box<dyn Future<Output = eyre::Result<()>> + Send + Sync>>,
-        > = FuturesUnordered::new();
-
-        let subscribe_to = |topic: String| {
-            let zenoh = zenoh.clone();
-            let (tx, rx) = channel::bounded(10);
-            receive_tasks.push(Box::pin(async move {
-                let mut changes = zenoh
-                    .subscribe(topic)
-                    .await
-                    .map_err(|e| eyre!(e))
-                    .context("failed to declare subscriber")?;
-
-                loop {
-                    let change = match changes.receiver().next().await {
-                        Some(c) => c,
-                        None => break,
-                    };
-                    if tx.send(change).await.is_err() {
-                        break;
-                    }
-                }
-                Ok(())
-            }));
-            rx
-        };
-
-        let responses = subscribe_to(ut.response_topic(&zenoh_prefix));
-        let address_responses = subscribe_to(ut.address_response_topic(&zenoh_prefix));
-
         Ok(ClientNode {
             zenoh_prefix,
-            address_responses,
-            responses,
-            receive_tasks,
+
+            incoming_tcp_messages: Box::pin(stream::empty()),
 
             ut,
 
             key_address_cache: HashMap::new(),
             routing_threads,
             routing_thread_connections: Default::default(),
-            incoming_tcp_messages: Box::pin(stream::empty()),
 
             pending_requests: Default::default(),
             pending_responses: Default::default(),
@@ -333,25 +293,9 @@ impl ClientNode {
         futures::select! {
             message = self.incoming_tcp_messages.select_next_some() => {
                 self.handle_tcp_message(message?, &mut results).await?;
-            }
+            },
             message = self.tcp_incoming.select_next_some() => {
                 self.handle_tcp_message(message?, &mut results).await?;
-            }
-            sample = self.address_responses.select_next_some() => {
-                let serialized = sample.value.as_string()?;
-                let response: AddressResponse = serde_json::from_str(&serialized)
-                    .context("failed to deserialize KeyAddressResponse")?;
-
-                self.handle_address_response(response).await?;
-            },
-            sample = self.responses.select_next_some() => {
-                let serialized = sample.value.as_string()?;
-                let response: Response =
-                    serde_json::from_str(&serialized).context("failed to deserialize KeyResponse")?;
-                results.extend(self.handle_response(response).await?);
-            },
-            task_result = self.receive_tasks.select_next_some() => {
-                task_result?;
             },
             () = timeout => {
                 // query routing info again for requests that have been waiting for too long
