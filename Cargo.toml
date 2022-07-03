@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [workspace]
 members = ["api"]
 
@@ -19,7 +17,6 @@ bytes = "1.0.1"
 uuid = { version = "1.0.0", features = ["v4"] }
 smol = "1.2.5"
 rand = "0.8.4"
-zenoh = { git = "https://github.com/eclipse-zenoh/zenoh.git", rev = "d4b00540cd0faa6ce585e11862cf9740ca226489" }
 futures = "0.3.15"
 log = "0.4.14"
 fern = "0.6.0"
