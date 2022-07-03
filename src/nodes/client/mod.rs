@@ -22,7 +22,7 @@ use futures::{
     Future, FutureExt, Stream, StreamExt, TryStreamExt,
 };
 use rand::prelude::IteratorRandom;
-use smol::{channel, io::AsyncWriteExt, net::TcpStream};
+use smol::{channel, net::TcpStream};
 use std::{
     collections::{HashMap, HashSet},
     iter::Extend,
@@ -759,7 +759,7 @@ impl ClientNode {
             .clone();
 
         if let Some(connection) = self.routing_thread_connections.get_mut(&rt_thread) {
-            send_tcp_request(&TcpMessage::AddressRequest(request), connection).await?;
+            send_tcp_message(&TcpMessage::AddressRequest(request), connection).await?;
         } else {
             let serialized =
                 serde_json::to_string(&request).context("failed to serialize KeyAddressRequest")?;
@@ -795,20 +795,6 @@ impl ClientNode {
     pub fn clear_cache(&mut self) {
         self.key_address_cache.clear();
     }
-}
-
-async fn send_tcp_request(request: &TcpMessage, connection: &mut TcpStream) -> eyre::Result<()> {
-    let serialized = serde_json::to_vec(&request).context("failed to serialize TcpMessage")?;
-    let len = (serialized.len() as u64).to_le_bytes();
-    connection
-        .write_all(&len)
-        .await
-        .context("failed to send message length")?;
-    connection
-        .write_all(&serialized)
-        .await
-        .context("failed to send message")?;
-    Ok(())
 }
 
 /// A helper method to check for the default failure modes for a request that
