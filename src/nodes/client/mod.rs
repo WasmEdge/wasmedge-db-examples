@@ -42,7 +42,6 @@ mod interactive;
 /// abstract over the lattice types that are used behind the scenes.
 pub struct ClientNode {
     /// The workspace used for communicating with KVS and routing nodes.
-    zenoh: Arc<zenoh::Session>,
     zenoh_prefix: String,
 
     /// Stream of incoming [`AddressResponse`] messages that are sent to this client node.
@@ -148,7 +147,6 @@ impl ClientNode {
         let address_responses = subscribe_to(ut.address_response_topic(&zenoh_prefix));
 
         Ok(ClientNode {
-            zenoh,
             zenoh_prefix,
             address_responses,
             responses,
@@ -708,14 +706,8 @@ impl ClientNode {
         if let Some(connection) = self.node_connections.get_mut(target) {
             send_tcp_message(&TcpMessage::Request(request.clone()), connection).await
         } else {
-            self.zenoh
-                .put(
-                    &target.request_topic(&self.zenoh_prefix),
-                    serde_json::to_string(request).context("failed to serialize Request")?,
-                )
-                .await
-                .map_err(|e| eyre!(e))
-                .context("zenoh put failed")
+            // TODO: remove this completely
+            panic!("no tcp connection to {:?}", target);
         }
     }
 
@@ -747,15 +739,8 @@ impl ClientNode {
         if let Some(connection) = self.routing_thread_connections.get_mut(&rt_thread) {
             send_tcp_message(&TcpMessage::AddressRequest(request), connection).await?;
         } else {
-            let serialized =
-                serde_json::to_string(&request).context("failed to serialize KeyAddressRequest")?;
-            self.zenoh
-                .put(
-                    &rt_thread.address_request_topic(&self.zenoh_prefix),
-                    serialized,
-                )
-                .await
-                .map_err(|e| eyre!(e))?;
+            // TODO: remove this completely
+            panic!("no tcp connection to {:?}", rt_thread);
         }
 
         Ok(())
