@@ -40,16 +40,13 @@ mod interactive;
 /// This client proxy provides GET/SET commands with different consistency levels, which
 /// abstract over the lattice types that are used behind the scenes.
 pub struct ClientNode {
-    /// The workspace used for communicating with KVS and routing nodes.
-    zenoh_prefix: String,
-
-    incoming_tcp_messages: Pin<Box<dyn TcpMessageStream>>,
-
     /// The node and thread ID of this client node.
     ///
     /// Allows to determine the zenoh topics that map to the [`Self::address_response_stream`]
     /// and [`Self::response_stream`].
     ut: ClientThread,
+
+    incoming_tcp_messages: Pin<Box<dyn TcpMessageStream>>,
 
     /// The configured set ouf routing nodes that should be used for querying addresses.
     ///
@@ -102,16 +99,13 @@ impl ClientNode {
         thread_id: u32,
         routing_threads: Vec<RoutingThread>,
         timeout: Duration,
-        zenoh_prefix: String,
     ) -> eyre::Result<Self> {
         let ut = ClientThread::new(node_id, thread_id);
 
         Ok(ClientNode {
-            zenoh_prefix,
+            ut,
 
             incoming_tcp_messages: Box::pin(stream::empty()),
-
-            ut,
 
             key_address_cache: HashMap::new(),
             routing_threads,
@@ -239,7 +233,7 @@ impl ClientNode {
         let request = ClientRequest {
             key,
             put_value: Some(lattice),
-            response_address: self.ut.response_topic(&self.zenoh_prefix).to_string(),
+            response_address: self.ut.response_topic().to_string(),
             request_id: request_id.clone(),
             address_cache_size: HashMap::new(),
             timestamp: Instant::now(),
@@ -266,7 +260,7 @@ impl ClientNode {
         let request = ClientRequest {
             key,
             put_value: None,
-            response_address: self.ut.response_topic(&self.zenoh_prefix).to_string(),
+            response_address: self.ut.response_topic().to_string(),
             request_id: request_id.clone(),
             address_cache_size: HashMap::new(),
             timestamp: Instant::now(),
@@ -666,10 +660,7 @@ impl ClientNode {
         // populate request with response address, request id, etc.
         let request = AddressRequest {
             request_id: self.generate_request_id(),
-            response_address: self
-                .ut
-                .address_response_topic(&self.zenoh_prefix)
-                .to_string(),
+            response_address: self.ut.address_response_topic().to_string(),
             keys: vec![key.clone()],
         };
 

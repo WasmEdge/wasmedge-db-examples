@@ -1,4 +1,4 @@
-use anna::{anna_default_zenoh_prefix, config::Config, nodes::client};
+use anna::{config::Config, nodes::client};
 use argh::FromArgs;
 use eyre::Context;
 use std::{
@@ -33,8 +33,6 @@ fn main() -> eyre::Result<()> {
     )
     .context("failed to parse config file")?;
 
-    let zenoh_prefix = anna_default_zenoh_prefix();
-
     let mut input = args
         .input_file
         .map(|path| File::open(&path).context("failed to open input file"))
@@ -51,7 +49,6 @@ fn main() -> eyre::Result<()> {
         &mut std::io::stdout(),
         &mut std::io::stderr(),
         false,
-        zenoh_prefix.to_owned(),
     )
 }
 

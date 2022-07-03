@@ -39,10 +39,10 @@ impl ClientThread {
     ///
     /// Clients send [`Request`][crate::messages::Request] messages to KVS nodes and pass
     /// this topic as reply topic.
-    pub fn response_topic(&self, prefix: &str) -> String {
+    pub fn response_topic(&self) -> String {
         format!(
-            "{}/{}/{}/{}",
-            prefix, self.node_id, USER_RESPONSE_TOPIC, self.thread_id
+            "/anna/{}/{}/{}",
+            self.node_id, USER_RESPONSE_TOPIC, self.thread_id
         )
         .try_into()
         .unwrap()
@@ -53,10 +53,10 @@ impl ClientThread {
     ///
     /// Clients send [`AddressRequest`][crate::messages::AddressRequest] messages to routing
     /// nodes and pass this topic as reply topic.
-    pub fn address_response_topic(&self, prefix: &str) -> String {
+    pub fn address_response_topic(&self) -> String {
         format!(
-            "{}/{}/{}/{}",
-            prefix, self.node_id, USER_KEY_ADDRESS_TOPIC, self.thread_id
+            "/anna/{}/{}/{}",
+            self.node_id, USER_KEY_ADDRESS_TOPIC, self.thread_id
         )
         .try_into()
         .unwrap()

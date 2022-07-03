@@ -25,7 +25,6 @@ pub use anna_api::{lattice, AnnaError, ClientKey};
 use eyre::anyhow;
 use messages::Tier;
 use metadata::MetadataKey;
-use zenoh::prelude::SplitBuffer;
 
 pub mod nodes;
 
@@ -73,24 +72,5 @@ impl std::convert::TryFrom<Key> for ClientKey {
             Key::Metadata(_) => Err(anyhow!("key is a metadata key instead of a client key")),
             Key::Client(key) => Ok(key),
         }
-    }
-}
-
-/// The default topic prefix for zenoh, used by the executables.
-pub fn anna_default_zenoh_prefix() -> &'static str {
-    "/anna"
-}
-
-/// Helper trait for converting a [`zenoh::Value`] to string types.
-pub trait ZenohValueAsString {
-    /// Tries to convert the given value to a string.
-    ///
-    /// Returns an error if the given value is not in text format.
-    fn as_string(&self) -> eyre::Result<String>;
-}
-
-impl ZenohValueAsString for zenoh::prelude::Value {
-    fn as_string(&self) -> eyre::Result<String> {
-        Ok(String::from_utf8(self.payload.contiguous().into_owned())?)
     }
 }

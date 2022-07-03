@@ -25,7 +25,6 @@ pub fn run_interactive<'a>(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     fail_fast: bool,
-    zenoh_prefix: String,
 ) -> eyre::Result<()> {
     let routing_threads: Vec<_> = (0..config.threads.routing)
         .map(|i| RoutingThread::new(i))
@@ -37,7 +36,6 @@ pub fn run_interactive<'a>(
         0,
         routing_threads,
         timeout,
-        zenoh_prefix,
     )?;
 
     smol::block_on(client.init_tcp_connections())?; // init TCP connections to routing nodes
