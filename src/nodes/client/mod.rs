@@ -27,7 +27,6 @@ use std::{
     collections::{HashMap, HashSet},
     iter::Extend,
     pin::Pin,
-    sync::Arc,
     time::{Duration, Instant},
 };
 
