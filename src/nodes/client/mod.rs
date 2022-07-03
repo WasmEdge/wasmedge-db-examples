@@ -642,7 +642,6 @@ impl ClientNode {
         if let Some(connection) = self.node_connections.get_mut(target) {
             send_tcp_message(&TcpMessage::Request(request.clone()), connection).await
         } else {
-            // TODO: remove this completely
             panic!("no tcp connection to {:?}", target);
         }
     }
@@ -671,12 +670,10 @@ impl ClientNode {
 
         if let Some(connection) = self.routing_thread_connections.get_mut(&rt_thread) {
             send_tcp_message(&TcpMessage::AddressRequest(request), connection).await?;
+            Ok(())
         } else {
-            // TODO: remove this completely
             panic!("no tcp connection to {:?}", rt_thread);
         }
-
-        Ok(())
     }
 
     /// Invalidate the key caches for any key that previously had this worker node in
