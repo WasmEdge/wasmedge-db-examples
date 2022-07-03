@@ -184,7 +184,12 @@ impl ClientNode {
                 // TODO: move these to config file or env var
                 let node_ip = "127.0.0.1";
                 let node_port = 12340 + routing_thread.thread_id as u16;
-                log::info!("Connecting to routing node via {}:{}", node_ip, node_port);
+                log::info!(
+                    "Connecting to routing node {} via {}:{}",
+                    routing_thread.thread_id,
+                    node_ip,
+                    node_port
+                );
                 let connection = {
                     let conn = TcpStream::connect((node_ip, node_port))
                         .await
