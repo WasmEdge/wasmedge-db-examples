@@ -177,40 +177,21 @@ impl ClientNode {
     /// Compared to the default communication through `zenoh`, the latency of requests
     /// is reduced significantly when using direct TCP connections.
     pub async fn init_tcp_connections(&mut self) -> eyre::Result<()> {
-        let zenoh = self.zenoh.clone();
         let tasks = FuturesUnordered::new();
 
         for routing_thread in self.routing_threads.clone() {
             tasks.push(async {
-                let reply = loop {
-                    let topic = routing_thread.tcp_addr_topic(&self.zenoh_prefix);
-                    let mut receiver = zenoh
-                        .get(&topic)
+                // TODO: move these to config file or env var
+                let node_ip = "127.0.0.1";
+                let node_port = 12340 + routing_thread.thread_id as u16;
+                log::info!("Connecting to routing node via {}:{}", node_ip, node_port);
+                let connection = {
+                    let conn = TcpStream::connect((node_ip, node_port))
                         .await
-                        .map_err(|e| eyre!(e))
-                        .context("failed to query tcp address of routing thread")?;
-                    match receiver.next().await {
-                        Some(reply) => break reply.sample.value,
-                        None => {
-                            log::info!("failed to receive tcp address reply");
-                            futures_timer::Delay::new(Duration::from_secs(1)).await;
-                        }
-                    }
-                };
-                let parsed: Option<smol::net::SocketAddr> =
-                    serde_json::from_str(&reply.as_string()?)
-                        .context("failed to deserialize tcp addr reply")?;
-                let connection = match parsed {
-                    Some(addr) => {
-                        let connection = TcpStream::connect(addr)
-                            .await
-                            .context("failed to connect to tcp stream")?;
-                        connection
-                            .set_nodelay(true)
-                            .context("failed to set nodelay for tcpstream")?;
-                        Some(connection)
-                    }
-                    None => None,
+                        .context("failed to connect to tcp stream")?;
+                    conn.set_nodelay(true)
+                        .context("failed to set nodelay for tcpstream")?;
+                    Some(conn)
                 };
 
                 Result::<_, eyre::Error>::Ok((routing_thread, connection))
