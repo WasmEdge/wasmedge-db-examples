@@ -21,13 +21,11 @@
 //! the [`ClientNode::run_interactive`][nodes::ClientNode::run_interactive] method for a full
 //! list of supported commands, including background information on the used lattice types.
 
-use std::sync::Arc;
-
 pub use anna_api::{lattice, AnnaError, ClientKey};
 use eyre::anyhow;
 use messages::Tier;
 use metadata::MetadataKey;
-use zenoh::prelude::{SplitBuffer, ZFuture};
+use zenoh::prelude::SplitBuffer;
 
 pub mod nodes;
 
