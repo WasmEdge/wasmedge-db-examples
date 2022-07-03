@@ -1,18 +1,2 @@
-capacities: # in GB
-  memory-cap: 1
-  ebs-cap: 0
 threads:
-  memory: 1
-  ebs: 1
   routing: 1
-  benchmark: 1
-replication:
-  memory: 1
-  ebs: 0
-  minimum: 1
-  local: 1
-
-policy:
-  elasticity: false
-  tiering: false
-  selective-rep: false
