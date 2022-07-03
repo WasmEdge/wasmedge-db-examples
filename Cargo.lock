@@ -3,7 +3,17 @@
 version = 3
 
 [[package]]
-name = "anna"
+name = "anna-api"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "eyre",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "anna-client-tokio"
 version = "0.1.0"
 dependencies = [
  "anna-api",
@@ -24,16 +34,6 @@ dependencies = [
  "serde_yaml",
  "smol",
  "uuid",
-]
-
-[[package]]
-name = "anna-api"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "eyre",
- "serde",
- "serde_json",
 ]
 
 [[package]]
