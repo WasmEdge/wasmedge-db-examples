@@ -2,9 +2,28 @@ use super::ClientNode;
 use crate::{config::Config, lattice::Lattice, topics::RoutingThread};
 use eyre::{anyhow, bail, Context};
 use std::{
+    future::Future,
     io::{BufRead, BufReader, Read, Write},
     time::Duration,
 };
+
+fn block_on<F: Future>(future: F) -> F::Output {
+    smol::block_on(future)
+}
+
+#[allow(dead_code)]
+mod tokio {
+    use std::future::Future;
+
+    use tokio::runtime;
+
+    fn block_on<F: Future>(future: F) -> F::Output {
+        runtime::Builder::new_current_thread()
+            .build()
+            .expect("Failed to create async runtime")
+            .block_on(future)
+    }
+}
 
 /// Starts a client node in [`interactive`][ClientNode::run_interactive] mode with the supplied config.
 ///
@@ -38,7 +57,7 @@ pub fn run_interactive<'a>(
         timeout,
     )?;
 
-    smol::block_on(client.init_tcp_connections())?; // init TCP connections to routing nodes
+    block_on(client.init_tcp_connections())?; // init TCP connections to routing nodes
     client.run_interactive(stdin, stdout, stderr, fail_fast)
 }
 
@@ -146,7 +165,7 @@ impl ClientNode {
                     bail!("unexpected argument `{}`", extra);
                 }
 
-                smol::block_on(self.put_lww(key.into(), value.into()))?;
+                block_on(self.put_lww(key.into(), value.into()))?;
                 writeln!(stdout, "Success!")?;
             }
             "GET" | "get" => {
@@ -157,7 +176,7 @@ impl ClientNode {
                     bail!("unexpected argument `{}`", extra);
                 }
 
-                let value = smol::block_on(self.get_lww(key.into()))?;
+                let value = block_on(self.get_lww(key.into()))?;
                 let string = String::from_utf8(value).context("value is not valid utf8")?;
 
                 log::trace!("[OK] Got {} from GET", string);
@@ -169,7 +188,7 @@ impl ClientNode {
                     .ok_or_else(|| anyhow!("missing key and value arguments"))?;
                 let value = split.map(|s| s.to_owned().into_bytes()).collect();
 
-                smol::block_on(self.put_set(key.into(), value))?;
+                block_on(self.put_set(key.into(), value))?;
                 writeln!(stdout, "Success!")?;
             }
             "GET_SET" | "get_set" => {
@@ -180,7 +199,7 @@ impl ClientNode {
                     bail!("unexpected argument `{}`", extra);
                 }
 
-                let value = smol::block_on(self.get_set(key.into()))?;
+                let value = block_on(self.get_set(key.into()))?;
 
                 let mut set: Vec<_> = value
                     .iter()
@@ -204,7 +223,7 @@ impl ClientNode {
                     bail!("unexpected argument `{}`", extra);
                 }
 
-                smol::block_on(self.put_causal(key.into(), value.to_owned().into_bytes()))?;
+                block_on(self.put_causal(key.into(), value.to_owned().into_bytes()))?;
                 writeln!(stdout, "Success!")?;
             }
             "GET_CAUSAL" | "get_causal" => {
@@ -215,7 +234,7 @@ impl ClientNode {
                     bail!("unexpected argument `{}`", extra);
                 }
 
-                let mkcl = smol::block_on(self.get_causal(key.into()))?;
+                let mkcl = block_on(self.get_causal(key.into()))?;
 
                 for (k, v) in mkcl.vector_clock.reveal() {
                     writeln!(stdout, "{{{} : {}}}", k, v.reveal())?;
