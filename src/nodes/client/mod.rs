@@ -19,7 +19,7 @@ use client_request::{ClientRequest, PendingRequest};
 use eyre::{anyhow, bail, Context, ContextCompat};
 use futures::{
     stream::{self, FusedStream, FuturesUnordered},
-    Stream, StreamExt, TryStreamExt,
+    FutureExt, Stream, StreamExt, TryStreamExt,
 };
 use rand::prelude::IteratorRandom;
 use smol::net::TcpStream;
@@ -281,16 +281,15 @@ impl ClientNode {
     /// until the desired response was received (or a timeout occured).
     pub async fn receive_async(&mut self) -> eyre::Result<Vec<Response>> {
         let mut results = Vec::new();
-        let timeout = tokio::time::sleep(Duration::from_secs(3));
-        tokio::pin!(timeout);
-        tokio::select! {
+        let mut timeout = futures_timer::Delay::new(Duration::from_secs(3)).fuse();
+        futures::select! {
             message = self.incoming_tcp_messages.select_next_some() => {
                 self.handle_tcp_message(message?, &mut results).await?;
             },
             message = self.tcp_incoming.select_next_some() => {
                 self.handle_tcp_message(message?, &mut results).await?;
             },
-            _ = timeout => {
+            () = timeout => {
                 // query routing info again for requests that have been waiting for too long
                 let now = Instant::now();
                 let waiting_keys = self.pending_requests.iter_mut().filter(|(_k, p)| {
@@ -302,7 +301,7 @@ impl ClientNode {
                     }
                     self.query_routing_async(key).await?;
                 }
-            }
+            },
         }
 
         // GC the pending request map
@@ -360,7 +359,7 @@ impl ClientNode {
                 AnnaError::NoServers => {
                     log::error!("No servers have joined the cluster yet. Retrying request.");
 
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    futures_timer::Delay::new(Duration::from_secs(1)).await;
 
                     for key in response.addresses.into_iter().map(|a| a.key) {
                         if let Some(pending) = self.pending_requests.get_mut(&key) {
