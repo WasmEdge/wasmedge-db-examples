@@ -77,14 +77,13 @@ mod legacy {
     }
 }
 
-pub use legacy::*;
+pub use self::tokio::*;
 
-#[allow(dead_code)]
-mod tokio {
+pub mod tokio {
     use eyre::{bail, Context};
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
-        net::TcpStream,
+        net::tcp,
     };
 
     use crate::messages::TcpMessage;
@@ -93,17 +92,17 @@ mod tokio {
     ///
     /// TCP messages should only be sent using this method, to ensure that all
     /// messages are sent in the same format.
-    pub async fn send_tcp_message_tokio(
+    pub async fn send_tcp_message(
         message: &TcpMessage,
-        connection: &mut TcpStream,
+        stream_tx: &mut tcp::OwnedWriteHalf,
     ) -> eyre::Result<()> {
         let serialized = serde_json::to_vec(&message).context("failed to serialize tcp message")?;
         let len = (serialized.len() as u64).to_le_bytes();
-        connection
+        stream_tx
             .write_all(&len)
             .await
             .context("failed to send message length")?;
-        connection
+        stream_tx
             .write_all(&serialized)
             .await
             .context("failed to send message")?;
@@ -115,12 +114,12 @@ mod tokio {
     /// This function requires that all messages are sent using [`send_tcp_message`],
     /// otherwise parsing the messages will fail.
     pub async fn receive_tcp_message(
-        stream: &mut (impl AsyncReadExt + Unpin),
+        stream_rx: &mut tcp::OwnedReadHalf,
     ) -> eyre::Result<Option<TcpMessage>> {
         const MAX_MSG_LEN: u64 = u32::MAX as u64;
 
         let mut len_raw = [0; 8];
-        if let Err(err) = stream.read_exact(&mut len_raw).await {
+        if let Err(err) = stream_rx.read_exact(&mut len_raw).await {
             if err.kind() == std::io::ErrorKind::UnexpectedEof
                 || err.kind() == std::io::ErrorKind::ConnectionReset
             {
@@ -136,7 +135,7 @@ mod tokio {
         }
 
         let mut buf = vec![0; len.try_into().unwrap()];
-        if let Err(err) = stream.read_exact(&mut buf).await {
+        if let Err(err) = stream_rx.read_exact(&mut buf).await {
             if err.kind() == std::io::ErrorKind::UnexpectedEof {
                 log::warn!("receive tcp message failed: {}", err);
                 return Ok(None);

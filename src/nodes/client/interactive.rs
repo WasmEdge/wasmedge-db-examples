@@ -2,28 +2,33 @@ use super::ClientNode;
 use crate::{config::Config, lattice::Lattice, topics::RoutingThread};
 use eyre::{anyhow, bail, Context};
 use std::{
-    future::Future,
     io::{BufRead, BufReader, Read, Write},
     time::Duration,
 };
 
-fn block_on<F: Future>(future: F) -> F::Output {
-    smol::block_on(future)
+mod legacy {
+    use std::future::Future;
+
+    pub fn block_on<F: Future>(future: F) -> F::Output {
+        smol::block_on(future)
+    }
 }
 
-#[allow(dead_code)]
 mod tokio {
     use std::future::Future;
 
     use tokio::runtime;
 
-    fn block_on<F: Future>(future: F) -> F::Output {
+    pub fn block_on<F: Future>(future: F) -> F::Output {
         runtime::Builder::new_current_thread()
+            .enable_all()
             .build()
             .expect("Failed to create async runtime")
             .block_on(future)
     }
 }
+
+use self::tokio::block_on;
 
 /// Starts a client node in [`interactive`][ClientNode::run_interactive] mode with the supplied config.
 ///

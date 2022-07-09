@@ -22,13 +22,13 @@ use futures::{
     FutureExt, Stream, StreamExt, TryStreamExt,
 };
 use rand::prelude::IteratorRandom;
-use smol::net::TcpStream;
 use std::{
     collections::{HashMap, HashSet},
     iter::Extend,
     pin::Pin,
     time::{Duration, Instant},
 };
+use tokio::net::{tcp, TcpStream};
 
 use super::{receive_tcp_message, send_tcp_message};
 
@@ -52,7 +52,7 @@ pub struct ClientNode {
     ///
     /// The client node will send [`AddressRequest`] messages to these routing nodes.
     routing_threads: Vec<RoutingThread>,
-    routing_thread_connections: HashMap<RoutingThread, TcpStream>,
+    routing_txes: HashMap<RoutingThread, tcp::OwnedWriteHalf>,
 
     /// Keeps track of the KVS node threads that are responsible for each key.
     key_address_cache: HashMap<ClientKey, HashSet<KvsThread>>,
@@ -73,7 +73,7 @@ pub struct ClientNode {
     /// Configured timeout after which a pending request/response should be considered as failed.
     timeout: Duration,
 
-    node_connections: HashMap<KvsThread, TcpStream>,
+    kvs_txes: HashMap<KvsThread, tcp::OwnedWriteHalf>,
     tcp_incoming: stream::SelectAll<
         Pin<Box<dyn Stream<Item = eyre::Result<TcpMessage>> + Unpin + Send + Sync>>,
     >,
@@ -109,14 +109,14 @@ impl ClientNode {
 
             key_address_cache: HashMap::new(),
             routing_threads,
-            routing_thread_connections: Default::default(),
+            routing_txes: Default::default(),
 
             pending_requests: Default::default(),
             pending_responses: Default::default(),
             request_id: 0,
             timeout,
 
-            node_connections: Default::default(),
+            kvs_txes: Default::default(),
             tcp_incoming: stream::SelectAll::new(),
         })
     }
@@ -140,37 +140,35 @@ impl ClientNode {
                     node_ip,
                     node_port
                 );
-                let connection = {
-                    let conn = TcpStream::connect((node_ip, node_port))
-                        .await
-                        .context("failed to connect to tcp stream")?;
-                    conn.set_nodelay(true)
-                        .context("failed to set nodelay for tcpstream")?;
-                    Some(conn)
-                };
-
-                Result::<_, eyre::Error>::Ok((routing_thread, connection))
+                let stream = TcpStream::connect((node_ip, node_port))
+                    .await
+                    .context("failed to connect to tcp stream")?;
+                stream
+                    .set_nodelay(true)
+                    .context("failed to set nodelay for tcpstream")?;
+                Result::<_, eyre::Error>::Ok((routing_thread, stream))
             });
         }
 
-        self.routing_thread_connections = tasks
-            .try_filter_map(|(thread, connection)| async { Ok(connection.map(|c| (thread, c))) })
-            .try_collect()
-            .await?;
+        let routing_rxes =
+            tasks
+                .try_collect::<Vec<_>>()
+                .await?
+                .into_iter()
+                .map(|(thread, stream)| {
+                    let (rx, tx) = stream.into_split();
+                    self.routing_txes.insert(thread, tx);
+                    rx
+                });
 
-        self.incoming_tcp_messages = Box::pin(stream::select_all(
-            self.routing_thread_connections
-                .values()
-                .cloned()
-                .map(|stream| {
-                    stream::try_unfold(stream, |mut stream| {
-                        Box::pin(async {
-                            let message = receive_tcp_message(&mut stream).await?;
-                            Result::<_, eyre::Error>::Ok(message.map(|m| (m, stream)))
-                        })
-                    })
-                }),
-        ));
+        self.incoming_tcp_messages = Box::pin(stream::select_all(routing_rxes.map(|stream_rx| {
+            stream::try_unfold(stream_rx, |mut stream_rx| {
+                Box::pin(async {
+                    let message = receive_tcp_message(&mut stream_rx).await?;
+                    Result::<_, eyre::Error>::Ok(message.map(|m| (m, stream_rx)))
+                })
+            })
+        })));
 
         Ok(())
     }
@@ -372,25 +370,26 @@ impl ClientNode {
             }
         } else {
             for (kvs_thread, socket) in response.tcp_sockets {
-                match self.node_connections.entry(kvs_thread) {
+                match self.kvs_txes.entry(kvs_thread) {
                     std::collections::hash_map::Entry::Occupied(_) => {} // already connected
                     std::collections::hash_map::Entry::Vacant(entry) => {
-                        let connection = TcpStream::connect(socket)
+                        let stream = TcpStream::connect(socket)
                             .await
                             .context("failed to connect to tcp stream")?;
-                        connection
+                        stream
                             .set_nodelay(true)
                             .context("failed to set nodelay for tcpstream")?;
-                        entry.insert(connection.clone());
+                        let (rx, tx) = stream.into_split();
+                        entry.insert(tx);
 
-                        let unfold_stream = |mut stream: TcpStream| {
+                        let unfold_stream_rx = |mut stream_rx| {
                             Box::pin(async {
-                                let message = receive_tcp_message(&mut stream).await?;
-                                Result::<_, eyre::Error>::Ok(message.map(|m| (m, stream)))
+                                let message = receive_tcp_message(&mut stream_rx).await?;
+                                Result::<_, eyre::Error>::Ok(message.map(|m| (m, stream_rx)))
                             })
                         };
                         self.tcp_incoming
-                            .push(Box::pin(stream::try_unfold(connection, unfold_stream)));
+                            .push(Box::pin(stream::try_unfold(rx, unfold_stream_rx)));
                     }
                 }
             }
@@ -639,8 +638,8 @@ impl ClientNode {
     }
 
     async fn send_request(&mut self, target: &KvsThread, request: &Request) -> eyre::Result<()> {
-        if let Some(connection) = self.node_connections.get_mut(target) {
-            send_tcp_message(&TcpMessage::Request(request.clone()), connection).await
+        if let Some(stream_tx) = self.kvs_txes.get_mut(target) {
+            send_tcp_message(&TcpMessage::Request(request.clone()), stream_tx).await
         } else {
             panic!("no tcp connection to {:?}", target);
         }
@@ -668,8 +667,8 @@ impl ClientNode {
             .context("no routing threads")?
             .clone();
 
-        if let Some(connection) = self.routing_thread_connections.get_mut(&rt_thread) {
-            send_tcp_message(&TcpMessage::AddressRequest(request), connection).await?;
+        if let Some(stream_tx) = self.routing_txes.get_mut(&rt_thread) {
+            send_tcp_message(&TcpMessage::AddressRequest(request), stream_tx).await?;
             Ok(())
         } else {
             panic!("no tcp connection to {:?}", rt_thread);
