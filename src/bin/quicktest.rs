@@ -16,7 +16,6 @@ fn set_up_logger() -> Result<(), fern::InitError> {
         })
         .level(log::LevelFilter::Info)
         .chain(std::io::stdout())
-        .chain(fern::log_file("client.log")?)
         .apply()?;
     Ok(())
 }
@@ -49,6 +48,7 @@ async fn main() -> eyre::Result<()> {
 
     client.put_lww("foo".into(), "bar".into()).await?;
     log::info!("Successfully put foo: bar");
+    futures_timer::Delay::new(Duration::from_secs(2)).await;
     let value = client.get_lww("foo".into()).await?;
     log::info!(
         "Successfully get foo: {}",

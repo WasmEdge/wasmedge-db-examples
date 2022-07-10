@@ -31,7 +31,6 @@ fn set_up_logger() -> Result<(), fern::InitError> {
         })
         .level(log::LevelFilter::Info)
         .chain(std::io::stdout())
-        .chain(fern::log_file("client.log")?)
         .apply()?;
     Ok(())
 }
