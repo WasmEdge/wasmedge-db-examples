@@ -421,11 +421,13 @@ impl ClientNode {
         Ok(())
     }
 
+    /// Try to get a *last writer wins* value with the given key.
     pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
         let lattice = self.get(key).await?;
         Ok(lattice.into_lww()?.into_revealed().into_value())
     }
 
+    /// Try to put a *last writer wins* value with the given key.
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
 
@@ -436,12 +438,14 @@ impl ClientNode {
         Ok(())
     }
 
+    /// Try to get a set value with the given key.
     pub async fn get_set(&mut self, key: ClientKey) -> eyre::Result<HashSet<Vec<u8>>> {
         let lattice = self.get(key).await?;
 
         Ok(lattice.into_set()?.into_revealed())
     }
 
+    /// Try to put a set value with the given key.
     pub async fn put_set(&mut self, key: ClientKey, set: HashSet<Vec<u8>>) -> eyre::Result<()> {
         let lattice_val = SetLattice::new(set);
 
@@ -452,6 +456,7 @@ impl ClientNode {
         Ok(())
     }
 
+    /// Try to get a *multi-key causal* value with the given key.
     pub async fn get_causal(
         &mut self,
         key: ClientKey,
@@ -461,7 +466,7 @@ impl ClientNode {
         Ok(lattice.into_multi_causal()?.into_revealed())
     }
 
-    // currently this mode is only for testing purpose
+    /// Try to put a *multi-key causal* value with the given key.
     pub async fn put_causal(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
         // construct a test client id - version pair
         let vector_clock = {
