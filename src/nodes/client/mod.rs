@@ -421,12 +421,12 @@ impl ClientNode {
         Ok(())
     }
 
-    async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
+    pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
         let lattice = self.get(key).await?;
         Ok(lattice.into_lww()?.into_revealed().into_value())
     }
 
-    async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
+    pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
 
         self.put(key, LatticeValue::Lww(lattice_val))
@@ -436,13 +436,13 @@ impl ClientNode {
         Ok(())
     }
 
-    async fn get_set(&mut self, key: ClientKey) -> eyre::Result<HashSet<Vec<u8>>> {
+    pub async fn get_set(&mut self, key: ClientKey) -> eyre::Result<HashSet<Vec<u8>>> {
         let lattice = self.get(key).await?;
 
         Ok(lattice.into_set()?.into_revealed())
     }
 
-    async fn put_set(&mut self, key: ClientKey, set: HashSet<Vec<u8>>) -> eyre::Result<()> {
+    pub async fn put_set(&mut self, key: ClientKey, set: HashSet<Vec<u8>>) -> eyre::Result<()> {
         let lattice_val = SetLattice::new(set);
 
         self.put(key, LatticeValue::Set(lattice_val))
@@ -452,7 +452,7 @@ impl ClientNode {
         Ok(())
     }
 
-    async fn get_causal(
+    pub async fn get_causal(
         &mut self,
         key: ClientKey,
     ) -> eyre::Result<MultiKeyCausalPayload<SetLattice<Vec<u8>>>> {
@@ -462,7 +462,7 @@ impl ClientNode {
     }
 
     // currently this mode is only for testing purpose
-    async fn put_causal(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
+    pub async fn put_causal(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
         // construct a test client id - version pair
         let vector_clock = {
             let mut vector_clock = VectorClock::default();
@@ -499,7 +499,7 @@ impl ClientNode {
     ///
     /// **Drops all other received messages.** Use [`Self::receive_async`] to handle all
     /// received messages.
-    pub async fn wait_for_matching_response(
+    async fn wait_for_matching_response(
         &mut self,
         request_id: String,
     ) -> eyre::Result<ResponseTuple> {

@@ -50,7 +50,7 @@ pub fn run_interactive<'a>(
     stderr: &mut dyn Write,
     fail_fast: bool,
 ) -> eyre::Result<()> {
-    let routing_threads: Vec<_> = (0..config.threads.routing)
+    let routing_threads: Vec<_> = (0..config.routing_threads)
         .map(|i| RoutingThread::new(i))
         .collect();
 

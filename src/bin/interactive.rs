@@ -1,22 +1,4 @@
 use anna_client_tokio::{config::Config, nodes::client};
-use argh::FromArgs;
-use eyre::Context;
-use std::{
-    fs::{self, File},
-    io::Read,
-    iter::Extend,
-    path::PathBuf,
-};
-
-#[derive(FromArgs)]
-/// Rusty anna client
-struct Args {
-    #[argh(positional)]
-    config_file: PathBuf,
-
-    #[argh(positional)]
-    input_file: Option<PathBuf>,
-}
 
 fn main() -> eyre::Result<()> {
     if let Err(err) = set_up_logger() {
@@ -26,26 +8,10 @@ fn main() -> eyre::Result<()> {
         );
     }
 
-    let args: Args = argh::from_env();
-
-    let config: Config = serde_yaml::from_str(
-        &fs::read_to_string(&args.config_file).context("failed to read config file")?,
-    )
-    .context("failed to parse config file")?;
-
-    let mut input = args
-        .input_file
-        .map(|path| File::open(&path).context("failed to open input file"))
-        .transpose()?
-        .map(|r| {
-            let boxed: Box<dyn Read> = Box::new(r);
-            boxed
-        })
-        .unwrap_or_else(|| Box::new(std::io::stdin()));
-
+    let config: Config = argh::from_env();
     client::run_interactive(
         &config,
-        &mut input,
+        &mut std::io::stdin(),
         &mut std::io::stdout(),
         &mut std::io::stderr(),
         false,
