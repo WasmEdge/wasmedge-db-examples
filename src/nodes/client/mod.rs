@@ -35,6 +35,8 @@ use super::{receive_tcp_message, send_tcp_message};
 mod client_request;
 mod interactive;
 
+pub mod clientng;
+
 /// Client nodes interact with KVS nodes to serve user requests.
 ///
 /// This client proxy provides GET/SET commands with different consistency levels, which

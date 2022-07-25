@@ -3,7 +3,6 @@
 pub use self::client::ClientNode;
 
 pub mod client;
-pub mod clientng;
 
 use eyre::{bail, Context};
 use tokio::{
@@ -31,6 +30,7 @@ pub async fn send_tcp_message(
         .write_all(&serialized)
         .await
         .context("failed to send message")?;
+    println!("[rc] sent tcp message: {:?}", message);
     Ok(())
 }
 
@@ -68,12 +68,14 @@ pub async fn receive_tcp_message(
             return Err(eyre::Error::new(err).wrap_err("failed to read message"));
         }
     }
-    serde_json::from_slice(&buf)
+    let res = serde_json::from_slice(&buf)
         .with_context(|| {
             format!(
                 "failed to deserialize message: `{}`",
                 String::from_utf8_lossy(&buf)
             )
         })
-        .map(Some)
+        .map(Some);
+    println!("[rc] received tcp message: {:?}", res);
+    res
 }
