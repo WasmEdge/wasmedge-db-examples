@@ -49,8 +49,8 @@ async fn main() -> eyre::Result<()> {
         .put_lww("time".into(), format!("{}", chrono::Utc::now()).into())
         .await?;
     tokio::time::sleep(Duration::from_secs(1)).await;
-    let value = String::from_utf8(client.get_lww("foo".into()).await?)?;
-    log::info!("Successfully get foo: {}", value);
+    let value = String::from_utf8(client.get_lww("time".into()).await?)?;
+    log::info!("Successfully get time: {}", value);
 
     Ok(())
 }

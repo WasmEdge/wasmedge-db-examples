@@ -5,7 +5,7 @@ use std::{
 };
 
 use anna_api::{
-    lattice::{last_writer_wins::Timestamp, LastWriterWinsLattice},
+    lattice::{last_writer_wins::Timestamp, LastWriterWinsLattice, Lattice},
     ClientKey, LatticeValue,
 };
 use eyre::{eyre, Context, ContextCompat};
@@ -64,10 +64,10 @@ impl ClientNode {
         }
     }
 
-    fn make_request(&mut self, key: ClientKey, value: LatticeValue) -> ClientRequest {
+    fn make_request(&mut self, key: ClientKey, value: Option<LatticeValue>) -> ClientRequest {
         ClientRequest {
             key,
-            put_value: Some(value),
+            put_value: value,
             response_address: self.client_thread.response_topic().to_string(),
             request_id: self.gen_request_id(),
             address_cache_size: HashMap::new(),
@@ -87,6 +87,7 @@ impl ClientNode {
         let routing_thread = self.get_routing_thread().context("no routing threads")?;
 
         // TODO: reuse connection
+        // TODO: connect to selected routing thread
         let stream = TcpStream::connect("127.0.0.1:12340")
             .await
             .context("failed to connect to tcp stream")?;
@@ -168,25 +169,53 @@ impl ClientNode {
     }
 
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
+        // TODO: query key address lazily
         let request = self.make_address_request(key.clone());
         let response = self.send_address_request(request).await?;
         assert!(response.error.is_none());
-        println!("[rc] address response: {:?}", response);
 
         self.handle_address_response(response)?;
 
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
-        let request = self.make_request(key.clone(), LatticeValue::Lww(lattice_val));
+        let request = self.make_request(key.clone(), Some(LatticeValue::Lww(lattice_val)));
         let response = self.send_request(request).await?;
         assert!(response.error.is_ok());
         assert!(response.tuples.len() == 1);
         assert!(response.tuples[0].error.is_none());
-        println!("[rc] response: {:?}", response);
 
         Ok(())
     }
 
     pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
-        todo!()
+        // TODO: query key address lazily
+        let request = self.make_address_request(key.clone());
+        let response = self.send_address_request(request).await?;
+        assert!(response.error.is_none());
+
+        self.handle_address_response(response)?;
+
+        let request = self.make_request(key.clone(), None);
+        let response = self.send_request(request).await?;
+
+        // TODO: handle cache invalidation and other special errors
+        if response.error.is_err() {
+            return Err(response.error.unwrap_err().into());
+        }
+
+        let response_tuple = response
+            .tuples
+            .get(0)
+            .cloned()
+            .ok_or_else(|| eyre!("response has no tuples"))?;
+        if let Some(error) = response_tuple.error {
+            Err(error.into())
+        } else {
+            Ok(response_tuple
+                .lattice
+                .context("expected lattice value")?
+                .into_lww()?
+                .into_revealed()
+                .into_value())
+        }
     }
 }
