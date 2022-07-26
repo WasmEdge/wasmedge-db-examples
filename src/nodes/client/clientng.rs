@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    net::SocketAddr,
     time::{Duration, Instant},
 };
 
@@ -7,14 +8,14 @@ use anna_api::{
     lattice::{last_writer_wins::Timestamp, LastWriterWinsLattice},
     ClientKey, LatticeValue,
 };
-use eyre::{Context, ContextCompat};
+use eyre::{eyre, Context, ContextCompat};
 use rand::prelude::IteratorRandom;
 use tokio::net::TcpStream;
 
 use crate::{
-    messages::{AddressRequest, TcpMessage},
+    messages::{AddressRequest, AddressResponse, Request, Response, TcpMessage},
     nodes::{receive_tcp_message, send_tcp_message},
-    topics::{ClientThread, RoutingThread},
+    topics::{ClientThread, KvsThread, RoutingThread},
 };
 
 use super::client_request::ClientRequest;
@@ -24,6 +25,8 @@ pub struct ClientNode {
     routing_threads: Vec<RoutingThread>,
     timeout: Duration,
     next_request_id: u32,
+    kvs_tcp_address_cache: HashMap<KvsThread, SocketAddr>,
+    key_address_cache: HashMap<ClientKey, HashSet<KvsThread>>,
 }
 
 impl ClientNode {
@@ -33,12 +36,14 @@ impl ClientNode {
         routing_threads: Vec<RoutingThread>,
         timeout: Duration,
     ) -> eyre::Result<Self> {
-        let ct = ClientThread::new(node_id, thread_id);
+        let client_thread = ClientThread::new(node_id, thread_id);
         Ok(Self {
-            client_thread: ct,
+            client_thread,
             routing_threads,
             timeout,
             next_request_id: 1,
+            kvs_tcp_address_cache: Default::default(),
+            key_address_cache: Default::default(),
         })
     }
 
@@ -51,9 +56,96 @@ impl ClientNode {
         id
     }
 
-    fn get_routing_thread(&self) -> Option<&RoutingThread> {
+    fn get_routing_thread(&self) -> Option<RoutingThread> {
         let mut rng = rand::thread_rng();
-        self.routing_threads.iter().choose(&mut rng)
+        self.routing_threads.iter().choose(&mut rng).cloned()
+    }
+
+    async fn send_address_request(
+        &mut self,
+        request: AddressRequest,
+    ) -> eyre::Result<AddressResponse> {
+        let routing_thread = self.get_routing_thread().context("no routing threads")?;
+
+        // TODO: reuse connection
+        let stream = TcpStream::connect("127.0.0.1:12340")
+            .await
+            .context("failed to connect to tcp stream")?;
+        stream
+            .set_nodelay(true)
+            .context("failed to set nodelay for tcpstream")?;
+        let (mut receiver, mut sender) = stream.into_split();
+
+        send_tcp_message(&TcpMessage::AddressRequest(request), &mut sender).await?;
+        // TODO: async receiving
+        let message = receive_tcp_message(&mut receiver).await?;
+        let message = message.context("connection closed")?;
+
+        match message {
+            TcpMessage::AddressResponse(response) => Ok(response),
+            _ => Err(eyre!("expected AddressResponse")),
+        }
+    }
+
+    fn handle_address_response(&mut self, response: AddressResponse) -> eyre::Result<()> {
+        response
+            .tcp_sockets
+            .into_iter()
+            .for_each(|(kvs_thread, addr)| {
+                self.kvs_tcp_address_cache.insert(kvs_thread, addr);
+            });
+
+        for key_addr in response.addresses {
+            let key = key_addr.key;
+            for node in key_addr.nodes {
+                self.key_address_cache
+                    .entry(key.clone())
+                    .or_default()
+                    .insert(node);
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_kvs_thread(&self, key: &ClientKey) -> Option<KvsThread> {
+        let mut rng = rand::thread_rng();
+        let addr_set = self.key_address_cache.get(key);
+        if let Some(addr_set) = addr_set {
+            addr_set.iter().choose(&mut rng).cloned()
+        } else {
+            None
+        }
+    }
+
+    async fn send_request(
+        &mut self,
+        request: ClientRequest, // TODO: may be change to Request
+    ) -> eyre::Result<Response> {
+        let kvs_thread = self
+            .get_kvs_thread(&request.key)
+            .context("no kvs threads")?;
+        let addr = self
+            .kvs_tcp_address_cache
+            .get(&kvs_thread)
+            .context("no tcp address to kvs thread")?;
+
+        // TODO: reuse connection
+        let stream = TcpStream::connect(addr).await?;
+        stream
+            .set_nodelay(true)
+            .context("failed to set nodelay for tcpstream")?;
+        let (mut receiver, mut sender) = stream.into_split();
+
+        send_tcp_message(&TcpMessage::Request(request.into()), &mut sender).await?;
+        // TODO: async receiving
+        let message = receive_tcp_message(&mut receiver).await?;
+        let message = message.context("connection closed")?;
+
+        match message {
+            TcpMessage::Response(response) => Ok(response),
+            _ => Err(eyre!("expected Response")),
+        }
     }
 
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
@@ -63,51 +155,11 @@ impl ClientNode {
             response_address: self.client_thread.address_response_topic().to_string(),
             keys: vec![key.clone()],
         };
-
-        let routing_thread = self
-            .get_routing_thread()
-            .context("no routing threads")?
-            .clone();
-
-        let stream = TcpStream::connect("127.0.0.1:12340")
-            .await
-            .context("failed to connect to tcp stream")?;
-        stream
-            .set_nodelay(true)
-            .context("failed to set nodelay for tcpstream")?;
-        let (mut receiver, mut sender) = stream.into_split();
-        send_tcp_message(&TcpMessage::AddressRequest(request), &mut sender).await?;
-        let message = receive_tcp_message(&mut receiver).await?;
-        let message = message.context("connection closed")?;
-        let response = match message {
-            TcpMessage::AddressResponse(response) => response,
-            _ => panic!("expected address response"),
-        };
-
-        println!("[rc] address response: {:?}", response);
+        let response = self.send_address_request(request).await?;
         assert!(response.error.is_none());
+        println!("[rc] address response: {:?}", response);
 
-        let mut kvs_map = HashMap::new();
-        for (kvs_thread, addr) in response.tcp_sockets {
-            match kvs_map.entry(kvs_thread) {
-                std::collections::hash_map::Entry::Occupied(_) => continue,
-                std::collections::hash_map::Entry::Vacant(entry) => {
-                    let stream = TcpStream::connect(addr).await?;
-                    stream
-                        .set_nodelay(true)
-                        .context("failed to set nodelay for tcpstream")?;
-                    entry.insert(stream.into_split());
-                }
-            }
-        }
-
-        let mut key_addresses: HashMap<_, HashSet<_>> = HashMap::new();
-        for key_addr in response.addresses {
-            let key = key_addr.key;
-            for node in key_addr.nodes {
-                key_addresses.entry(key.clone()).or_default().insert(node);
-            }
-        }
+        self.handle_address_response(response)?;
 
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
         let lattice = LatticeValue::Lww(lattice_val);
@@ -122,29 +174,14 @@ impl ClientNode {
             timestamp: Instant::now(),
         };
 
-        let mut rng = rand::thread_rng();
-        let kvs_thread = key_addresses
-            .entry(key.clone())
-            .or_default()
-            .iter()
-            .choose(&mut rng)
-            .context("no kvs threads")?
-            .clone();
+        let response = self.send_request(request).await?;
 
-        let (ref mut receiver, ref mut sender) = kvs_map
-            .get_mut(&kvs_thread)
-            .context("no connection to kvs thread")?;
-        send_tcp_message(&TcpMessage::Request(request.into()), sender).await?;
-        let message = receive_tcp_message(receiver).await?;
-        let message = message.context("connection closed")?;
-        let response = match message {
-            TcpMessage::Response(response) => response,
-            _ => panic!("expected response"),
-        };
-
+        assert!(response.error.is_ok());
+        assert!(response.tuples.len() == 1);
+        assert!(response.tuples[0].error.is_none());
         println!("[rc] response: {:?}", response);
 
-        todo!()
+        Ok(())
     }
 
     pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
