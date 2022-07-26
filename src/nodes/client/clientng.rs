@@ -56,6 +56,25 @@ impl ClientNode {
         id
     }
 
+    fn make_address_request(&mut self, key: ClientKey) -> AddressRequest {
+        AddressRequest {
+            request_id: self.gen_request_id(),
+            response_address: self.client_thread.address_response_topic().to_string(),
+            keys: vec![key],
+        }
+    }
+
+    fn make_request(&mut self, key: ClientKey, value: LatticeValue) -> ClientRequest {
+        ClientRequest {
+            key,
+            put_value: Some(value),
+            response_address: self.client_thread.response_topic().to_string(),
+            request_id: self.gen_request_id(),
+            address_cache_size: HashMap::new(),
+            timestamp: Instant::now(),
+        }
+    }
+
     fn get_routing_thread(&self) -> Option<RoutingThread> {
         let mut rng = rand::thread_rng();
         self.routing_threads.iter().choose(&mut rng).cloned()
@@ -149,12 +168,7 @@ impl ClientNode {
     }
 
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
-        let request_id = self.gen_request_id();
-        let request = AddressRequest {
-            request_id,
-            response_address: self.client_thread.address_response_topic().to_string(),
-            keys: vec![key.clone()],
-        };
+        let request = self.make_address_request(key.clone());
         let response = self.send_address_request(request).await?;
         assert!(response.error.is_none());
         println!("[rc] address response: {:?}", response);
@@ -162,20 +176,8 @@ impl ClientNode {
         self.handle_address_response(response)?;
 
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
-        let lattice = LatticeValue::Lww(lattice_val);
-
-        let request_id = self.gen_request_id();
-        let request = ClientRequest {
-            key: key.clone(),
-            put_value: Some(lattice),
-            response_address: self.client_thread.response_topic().to_string(),
-            request_id: request_id.clone(),
-            address_cache_size: HashMap::new(),
-            timestamp: Instant::now(),
-        };
-
+        let request = self.make_request(key.clone(), LatticeValue::Lww(lattice_val));
         let response = self.send_request(request).await?;
-
         assert!(response.error.is_ok());
         assert!(response.tuples.len() == 1);
         assert!(response.tuples[0].error.is_none());
