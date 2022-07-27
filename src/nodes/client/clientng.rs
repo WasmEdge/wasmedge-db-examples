@@ -10,7 +10,7 @@ use anna_api::{
 };
 use eyre::{eyre, Context, ContextCompat};
 use rand::prelude::IteratorRandom;
-use tokio::net::TcpStream;
+use tokio::net::{tcp, TcpStream};
 
 use crate::{
     messages::{AddressRequest, AddressResponse, Request, Response, TcpMessage},
@@ -27,6 +27,8 @@ pub struct ClientNode {
     next_request_id: u32,
     kvs_tcp_address_cache: HashMap<KvsThread, SocketAddr>,
     key_address_cache: HashMap<ClientKey, HashSet<KvsThread>>,
+    // TODO: change to only write halves, the read halves should be constantly polled in some tasks
+    tcp_connections: HashMap<SocketAddr, (tcp::OwnedReadHalf, tcp::OwnedWriteHalf)>,
 }
 
 impl ClientNode {
@@ -44,6 +46,7 @@ impl ClientNode {
             next_request_id: 1,
             kvs_tcp_address_cache: Default::default(),
             key_address_cache: Default::default(),
+            tcp_connections: Default::default(),
         })
     }
 
@@ -80,24 +83,31 @@ impl ClientNode {
         self.routing_threads.iter().choose(&mut rng).cloned()
     }
 
+    async fn get_tcp_connection(
+        &mut self,
+        addr: SocketAddr,
+    ) -> eyre::Result<(tcp::OwnedReadHalf, tcp::OwnedWriteHalf)> {
+        let stream = TcpStream::connect(addr)
+            .await
+            .context("failed to connect to tcp stream")?;
+        stream
+            .set_nodelay(true)
+            .context("failed to set nodelay for tcpstream")?;
+        // TODO: keep the connection
+        Ok(stream.into_split())
+    }
+
     async fn send_address_request(
         &mut self,
         request: AddressRequest,
     ) -> eyre::Result<AddressResponse> {
         let routing_thread = self.get_routing_thread().context("no routing threads")?;
 
-        // TODO: reuse connection
-        // TODO: connect to selected routing thread
-        let stream = TcpStream::connect("127.0.0.1:12340")
-            .await
-            .context("failed to connect to tcp stream")?;
-        stream
-            .set_nodelay(true)
-            .context("failed to set nodelay for tcpstream")?;
-        let (mut receiver, mut sender) = stream.into_split();
-
+        let (mut receiver, mut sender) = self
+            .get_tcp_connection("127.0.0.1:12340".parse().unwrap())
+            .await?;
         send_tcp_message(&TcpMessage::AddressRequest(request), &mut sender).await?;
-        // TODO: async receiving
+        // TODO: async receiving using oneshot channel
         let message = receive_tcp_message(&mut receiver).await?;
         let message = message.context("connection closed")?;
 
@@ -138,24 +148,19 @@ impl ClientNode {
         }
     }
 
+    fn get_key_tcp_address(&self, key: &ClientKey) -> Option<SocketAddr> {
+        let kvs_thread = self.get_kvs_thread(key)?;
+        Some(self.kvs_tcp_address_cache.get(&kvs_thread)?.clone())
+    }
+
     async fn send_request(
         &mut self,
         request: ClientRequest, // TODO: may be change to Request
     ) -> eyre::Result<Response> {
-        let kvs_thread = self
-            .get_kvs_thread(&request.key)
-            .context("no kvs threads")?;
         let addr = self
-            .kvs_tcp_address_cache
-            .get(&kvs_thread)
-            .context("no tcp address to kvs thread")?;
-
-        // TODO: reuse connection
-        let stream = TcpStream::connect(addr).await?;
-        stream
-            .set_nodelay(true)
-            .context("failed to set nodelay for tcpstream")?;
-        let (mut receiver, mut sender) = stream.into_split();
+            .get_key_tcp_address(&request.key)
+            .context("fail to get tcp address of the kvs thread the key locates")?;
+        let (mut receiver, mut sender) = self.get_tcp_connection(addr).await?;
 
         send_tcp_message(&TcpMessage::Request(request.into()), &mut sender).await?;
         // TODO: async receiving
