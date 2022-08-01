@@ -4,7 +4,7 @@
 
 ## Usage
 
-First, run routing node and KVS node of [the adapted version of anna-rs](https://github.com/richardchien/anna-rs):
+First, run routing node and KVS node of [the adapted version of anna-rs](https://github.com/second-state/anna-rs):
 
 ```sh
 $ cd anna-rs
