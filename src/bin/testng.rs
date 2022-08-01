@@ -41,6 +41,8 @@ async fn main() -> eyre::Result<()> {
     let mut client = ClientNode::new(
         format!("client-{}", uuid::Uuid::new_v4()),
         0,
+        config.routing_ip,
+        config.routing_port_base,
         routing_threads,
         timeout,
     )?;

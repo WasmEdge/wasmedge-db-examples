@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     time::{Duration, Instant},
 };
 
@@ -22,6 +22,8 @@ use super::client_request::ClientRequest;
 
 pub struct ClientNode {
     client_thread: ClientThread,
+    routing_ip: IpAddr,
+    routing_port_base: u16,
     routing_threads: Vec<RoutingThread>,
     timeout: Duration,
     next_request_id: u32,
@@ -35,12 +37,16 @@ impl ClientNode {
     pub fn new(
         node_id: String,
         thread_id: u32,
+        routing_ip: IpAddr,
+        routing_port_base: u16,
         routing_threads: Vec<RoutingThread>,
         timeout: Duration,
     ) -> eyre::Result<Self> {
         let client_thread = ClientThread::new(node_id, thread_id);
         Ok(Self {
             client_thread,
+            routing_ip,
+            routing_port_base,
             routing_threads,
             timeout,
             next_request_id: 1,
@@ -55,11 +61,13 @@ impl ClientNode {
             "{}:{}_{}",
             self.client_thread.node_id, self.client_thread.thread_id, self.next_request_id
         );
+        log::trace!("Generated request ID: {}", id);
         self.next_request_id = (self.next_request_id + 1) % 10000;
         id
     }
 
     fn make_address_request(&mut self, key: ClientKey) -> AddressRequest {
+        log::trace!("Making AddressRequest for key: {:?}", key);
         AddressRequest {
             request_id: self.gen_request_id(),
             response_address: self.client_thread.address_response_topic().to_string(),
@@ -68,6 +76,11 @@ impl ClientNode {
     }
 
     fn make_request(&mut self, key: ClientKey, value: Option<LatticeValue>) -> ClientRequest {
+        log::trace!(
+            "Making ClientRequest for key: {:?}, value: {:?}",
+            key,
+            value
+        );
         ClientRequest {
             key,
             put_value: value,
@@ -80,13 +93,16 @@ impl ClientNode {
 
     fn get_routing_thread(&self) -> Option<RoutingThread> {
         let mut rng = rand::thread_rng();
-        self.routing_threads.iter().choose(&mut rng).cloned()
+        let thread = self.routing_threads.iter().choose(&mut rng).cloned();
+        log::trace!("Selected routing thread: {:?}", thread);
+        thread
     }
 
     async fn get_tcp_connection(
         &mut self,
         addr: SocketAddr,
     ) -> eyre::Result<(tcp::OwnedReadHalf, tcp::OwnedWriteHalf)> {
+        log::trace!("Connecting TCP to address: {:?}", addr);
         let stream = TcpStream::connect(addr)
             .await
             .context("failed to connect to tcp stream")?;
@@ -104,7 +120,10 @@ impl ClientNode {
         let routing_thread = self.get_routing_thread().context("no routing threads")?;
 
         let (mut receiver, mut sender) = self
-            .get_tcp_connection("127.0.0.1:12340".parse().unwrap())
+            .get_tcp_connection(SocketAddr::new(
+                self.routing_ip,
+                self.routing_port_base + routing_thread.thread_id as u16,
+            ))
             .await?;
         send_tcp_message(&TcpMessage::AddressRequest(request), &mut sender).await?;
         // TODO: async receiving using oneshot channel
@@ -141,11 +160,13 @@ impl ClientNode {
     fn get_kvs_thread(&self, key: &ClientKey) -> Option<KvsThread> {
         let mut rng = rand::thread_rng();
         let addr_set = self.key_address_cache.get(key);
-        if let Some(addr_set) = addr_set {
+        let thread = if let Some(addr_set) = addr_set {
             addr_set.iter().choose(&mut rng).cloned()
         } else {
             None
-        }
+        };
+        log::trace!("Selected KVS thread: {:?}, key: {:?}", thread, key);
+        thread
     }
 
     fn get_key_tcp_address(&self, key: &ClientKey) -> Option<SocketAddr> {
