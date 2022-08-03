@@ -1,6 +1,6 @@
-# anna-client-tokio
+# wasmedge-anna-driver
 
-**anna-client-tokio** is a Rust client for [anna-rs](https://github.com/essa-project/anna-rs) based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge).
+**wasmedge-anna-driver** is a Rust client for [anna-rs](https://github.com/essa-project/anna-rs) based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge).
 
 ## Usage
 
@@ -14,10 +14,10 @@ $ # in another shell instance
 $ ANNA_PUBLIC_IP=127.0.0.1 cargo run --bin kvs -- config.yml
 ```
 
-Then, build and run the test app of **anna-client-tokio**:
+Then, build and run the test app of **wasmedge-anna-driver**:
 
 ```sh
-$ cd anna-client-tokio
+$ cd wasmedge-db-drivers/anna
 $ cargo build --target wasm32-wasi
 $ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/testng.wasm -h 127.0.0.1 -p 12340 -r 2
 # -h: IP address of routing node
