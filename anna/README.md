@@ -24,3 +24,7 @@ $ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/testng.wasm -h 127.0.0.1 
 # -p: Base TCP port of routing threads
 # -r: Number of routinge threads
 ```
+
+## Attribution
+
+Many code of this driver is derived from [anna-rs](https://github.com/essa-project/anna-rs).
