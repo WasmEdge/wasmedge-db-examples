@@ -175,33 +175,41 @@ impl ClientNode {
     fn get_kvs_thread_from_cache(&self, key: &ClientKey) -> Option<KvsThread> {
         let mut rng = rand::thread_rng();
         let addr_set = self.key_address_cache.get(key);
-        let thread = if let Some(addr_set) = addr_set {
+        if let Some(addr_set) = addr_set {
             addr_set.iter().choose(&mut rng).cloned()
         } else {
             None
-        };
-        log::trace!("Selected KVS thread: {:?}, key: {:?}", thread, key);
-        thread
+        }
     }
 
-    fn get_key_tcp_address_from_cache(&self, key: &ClientKey) -> Option<SocketAddr> {
-        // get a random kvs thread for the key
-        let kvs_thread = self.get_kvs_thread_from_cache(key)?;
-        // get the tcp address for the kvs thread
-        let addr = self.kvs_tcp_address_cache.get(&kvs_thread).cloned();
-        log::trace!("Selected KVS tcp address: {:?}, key: {:?}", addr, key);
-        addr
+    async fn get_kvs_thread(&mut self, key: &ClientKey) -> eyre::Result<Option<KvsThread>> {
+        let thread = match self.get_kvs_thread_from_cache(key) {
+            thread @ Some(_) => thread, // cache hit
+            None => {
+                // cache miss
+                self.query_key_address(key).await?;
+                self.get_kvs_thread_from_cache(key)
+            }
+        };
+        log::trace!("Selected kvs thread: {:?}, key: {:?}", thread, key);
+        Ok(thread)
     }
 
     async fn get_key_tcp_address(&mut self, key: &ClientKey) -> eyre::Result<Option<SocketAddr>> {
-        let addr = match self.get_key_tcp_address_from_cache(key) {
+        let kvs_thread = match self.get_kvs_thread(key).await? {
+            Some(thread) => thread,
+            None => return Ok(None),
+        };
+        let addr = match self.kvs_tcp_address_cache.get(&kvs_thread) {
             addr @ Some(_) => addr, // cache hit
             None => {
                 // cache miss
                 self.query_key_address(key).await?;
-                self.get_key_tcp_address_from_cache(key)
+                self.kvs_tcp_address_cache.get(&kvs_thread)
             }
-        };
+        }
+        .cloned();
+        log::trace!("Got kvs tcp address: {:?}, thread: {:?}", addr, kvs_thread);
         Ok(addr)
     }
 
