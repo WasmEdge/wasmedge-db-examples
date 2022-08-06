@@ -205,10 +205,7 @@ impl ClientNode {
         Ok(addr)
     }
 
-    async fn send_request(
-        &mut self,
-        request: ClientRequest, // TODO: may be change to Request
-    ) -> eyre::Result<Response> {
+    async fn send_request(&mut self, request: ClientRequest) -> eyre::Result<Response> {
         let addr = self
             .get_key_tcp_address(&request.key)
             .await?
