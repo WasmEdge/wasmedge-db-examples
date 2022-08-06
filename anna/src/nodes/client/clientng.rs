@@ -1,3 +1,5 @@
+//! New generation of client node that expose a GET/PUT-based interface to users.
+
 use std::{
     collections::{HashMap, HashSet},
     net::{IpAddr, SocketAddr},
@@ -13,27 +15,29 @@ use rand::prelude::IteratorRandom;
 use tokio::net::{tcp, TcpStream};
 
 use crate::{
-    messages::{AddressRequest, AddressResponse, Request, Response, TcpMessage},
+    messages::{AddressRequest, AddressResponse, Response, TcpMessage},
     nodes::{receive_tcp_message, send_tcp_message},
     topics::{ClientThread, KvsThread, RoutingThread},
 };
 
 use super::client_request::ClientRequest;
 
+/// Anna client.
 pub struct ClientNode {
     client_thread: ClientThread,
     routing_ip: IpAddr,
     routing_port_base: u16,
     routing_threads: Vec<RoutingThread>,
-    timeout: Duration,
+    _timeout: Duration,
     next_request_id: u32,
     kvs_tcp_address_cache: HashMap<KvsThread, SocketAddr>,
     key_address_cache: HashMap<ClientKey, HashSet<KvsThread>>,
     // TODO: change to only write halves, the read halves should be constantly polled in some tasks
-    tcp_connections: HashMap<SocketAddr, (tcp::OwnedReadHalf, tcp::OwnedWriteHalf)>,
+    _tcp_connections: HashMap<SocketAddr, (tcp::OwnedReadHalf, tcp::OwnedWriteHalf)>,
 }
 
 impl ClientNode {
+    /// Create a new client node.
     pub fn new(
         node_id: String,
         thread_id: u32,
@@ -48,11 +52,11 @@ impl ClientNode {
             routing_ip,
             routing_port_base,
             routing_threads,
-            timeout,
+            _timeout: timeout,
             next_request_id: 1,
             kvs_tcp_address_cache: Default::default(),
             key_address_cache: Default::default(),
-            tcp_connections: Default::default(),
+            _tcp_connections: Default::default(),
         })
     }
 
@@ -222,6 +226,7 @@ impl ClientNode {
         }
     }
 
+    /// Try to put a *last writer wins* value with the given key.
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
         let request = self.make_request(key.clone(), Some(LatticeValue::Lww(lattice_val)));
@@ -233,6 +238,7 @@ impl ClientNode {
         Ok(())
     }
 
+    /// Try to get a *last writer wins* value with the given key.
     pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
         let request = self.make_request(key.clone(), None);
         let response = self.send_request(request).await?;
