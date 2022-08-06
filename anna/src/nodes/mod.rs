@@ -30,7 +30,7 @@ pub async fn send_tcp_message(
         .write_all(&serialized)
         .await
         .context("failed to send message")?;
-    println!("[rc] sent tcp message: {:?}", message);
+    log::trace!("Sent tcp message: {:?}", message);
     Ok(())
 }
 
@@ -76,6 +76,6 @@ pub async fn receive_tcp_message(
             )
         })
         .map(Some);
-    println!("[rc] received tcp message: {:?}", res);
+    log::trace!("Received tcp message: {:?}", res);
     res
 }
