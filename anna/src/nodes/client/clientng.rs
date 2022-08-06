@@ -46,6 +46,7 @@ impl ClientNode {
         routing_threads: Vec<RoutingThread>,
         timeout: Duration,
     ) -> eyre::Result<Self> {
+        assert!(!routing_threads.is_empty());
         let client_thread = ClientThread::new(node_id, thread_id);
         Ok(Self {
             client_thread,
@@ -95,11 +96,24 @@ impl ClientNode {
         }
     }
 
-    fn get_routing_thread(&self) -> Option<RoutingThread> {
+    fn get_routing_thread(&self) -> RoutingThread {
         let mut rng = rand::thread_rng();
-        let thread = self.routing_threads.iter().choose(&mut rng).cloned();
+        let thread = self
+            .routing_threads
+            .iter()
+            .choose(&mut rng)
+            .unwrap()
+            .clone();
         log::trace!("Selected routing thread: {:?}", thread);
         thread
+    }
+
+    fn get_routing_tcp_address(&self) -> SocketAddr {
+        let routing_thread = self.get_routing_thread();
+        SocketAddr::new(
+            self.routing_ip,
+            self.routing_port_base + routing_thread.thread_id as u16,
+        )
     }
 
     async fn get_tcp_connection(
@@ -121,14 +135,8 @@ impl ClientNode {
         &mut self,
         request: AddressRequest,
     ) -> eyre::Result<AddressResponse> {
-        let routing_thread = self.get_routing_thread().context("no routing threads")?;
-
-        let (mut receiver, mut sender) = self
-            .get_tcp_connection(SocketAddr::new(
-                self.routing_ip,
-                self.routing_port_base + routing_thread.thread_id as u16,
-            ))
-            .await?;
+        let addr = self.get_routing_tcp_address();
+        let (mut receiver, mut sender) = self.get_tcp_connection(addr).await?;
         send_tcp_message(&TcpMessage::AddressRequest(request), &mut sender).await?;
         // TODO: async receiving using oneshot channel
         let message = receive_tcp_message(&mut receiver).await?;
