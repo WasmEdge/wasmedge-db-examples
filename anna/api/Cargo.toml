@@ -1,0 +1,13 @@
+[package]
+name = "anna-api"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.126", features = ["derive", "rc"] }
+chrono = { version = "0.4.19", features = ["serde"] }
+eyre = "0.6.5"
+serde_json = "1.0.64"
