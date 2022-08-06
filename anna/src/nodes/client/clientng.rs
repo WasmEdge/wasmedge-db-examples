@@ -157,7 +157,18 @@ impl ClientNode {
         Ok(())
     }
 
-    fn get_kvs_thread(&self, key: &ClientKey) -> Option<KvsThread> {
+    /// Make and send an AddressRequest for the given key,
+    /// and update the address cache with the response.
+    async fn query_key_address(&mut self, key: &ClientKey) -> eyre::Result<()> {
+        log::trace!("Querying address for key: {:?}", key);
+        let request = self.make_address_request(key.clone());
+        let response = self.send_address_request(request).await?;
+        assert!(response.error.is_none()); // TODO: handle the error (cache invalidation, no server, etc.)
+        self.handle_address_response(response)?;
+        Ok(())
+    }
+
+    fn get_kvs_thread_from_cache(&self, key: &ClientKey) -> Option<KvsThread> {
         let mut rng = rand::thread_rng();
         let addr_set = self.key_address_cache.get(key);
         let thread = if let Some(addr_set) = addr_set {
@@ -169,9 +180,25 @@ impl ClientNode {
         thread
     }
 
-    fn get_key_tcp_address(&self, key: &ClientKey) -> Option<SocketAddr> {
-        let kvs_thread = self.get_kvs_thread(key)?;
-        Some(self.kvs_tcp_address_cache.get(&kvs_thread)?.clone())
+    fn get_key_tcp_address_from_cache(&self, key: &ClientKey) -> Option<SocketAddr> {
+        // get a random kvs thread for the key
+        let kvs_thread = self.get_kvs_thread_from_cache(key)?;
+        // get the tcp address for the kvs thread
+        let addr = self.kvs_tcp_address_cache.get(&kvs_thread).cloned();
+        log::trace!("Selected KVS tcp address: {:?}, key: {:?}", addr, key);
+        addr
+    }
+
+    async fn get_key_tcp_address(&mut self, key: &ClientKey) -> eyre::Result<Option<SocketAddr>> {
+        let addr = match self.get_key_tcp_address_from_cache(key) {
+            addr @ Some(_) => addr, // cache hit
+            None => {
+                // cache miss
+                self.query_key_address(key).await?;
+                self.get_key_tcp_address_from_cache(key)
+            }
+        };
+        Ok(addr)
     }
 
     async fn send_request(
@@ -180,6 +207,7 @@ impl ClientNode {
     ) -> eyre::Result<Response> {
         let addr = self
             .get_key_tcp_address(&request.key)
+            .await?
             .context("fail to get tcp address of the kvs thread the key locates")?;
         let (mut receiver, mut sender) = self.get_tcp_connection(addr).await?;
 
@@ -195,13 +223,6 @@ impl ClientNode {
     }
 
     pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
-        // TODO: query key address lazily
-        let request = self.make_address_request(key.clone());
-        let response = self.send_address_request(request).await?;
-        assert!(response.error.is_none());
-
-        self.handle_address_response(response)?;
-
         let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
         let request = self.make_request(key.clone(), Some(LatticeValue::Lww(lattice_val)));
         let response = self.send_request(request).await?;
@@ -213,13 +234,6 @@ impl ClientNode {
     }
 
     pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
-        // TODO: query key address lazily
-        let request = self.make_address_request(key.clone());
-        let response = self.send_address_request(request).await?;
-        assert!(response.error.is_none());
-
-        self.handle_address_response(response)?;
-
         let request = self.make_request(key.clone(), None);
         let response = self.send_request(request).await?;
 
