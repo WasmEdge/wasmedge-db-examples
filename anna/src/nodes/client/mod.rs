@@ -335,10 +335,8 @@ impl Client {
         promise.await.map_err(Into::into)
     }
 
-    /// Try to put a *last writer wins* value with the given key.
-    pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
-        let lattice_val = LastWriterWinsLattice::from_pair(Timestamp::now(), value);
-        let request = self.make_request(key.clone(), Some(LatticeValue::Lww(lattice_val)));
+    async fn put_lattice(&mut self, key: ClientKey, value: LatticeValue) -> eyre::Result<()> {
+        let request = self.make_request(key.clone(), Some(value));
         let response = self.send_request(request).await?;
         // TODO: handle error
         assert!(response.error.is_ok());
@@ -347,8 +345,7 @@ impl Client {
         Ok(())
     }
 
-    /// Try to get a *last writer wins* value with the given key.
-    pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
+    async fn get_lattice(&mut self, key: ClientKey) -> eyre::Result<LatticeValue> {
         let request = self.make_request(key.clone(), None);
         let response = self.send_request(request).await?;
 
@@ -365,12 +362,26 @@ impl Client {
         if let Some(error) = response_tuple.error {
             Err(error.into())
         } else {
-            Ok(response_tuple
-                .lattice
-                .context("expected lattice value")?
-                .into_lww()?
-                .into_revealed()
-                .into_value())
+            response_tuple.lattice.context("expected lattice value")
         }
+    }
+
+    /// Try to put a *last writer wins* value with the given key.
+    pub async fn put_lww(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
+        self.put_lattice(
+            key,
+            LatticeValue::Lww(LastWriterWinsLattice::from_pair(Timestamp::now(), value)),
+        )
+        .await
+    }
+
+    /// Try to get a *last writer wins* value with the given key.
+    pub async fn get_lww(&mut self, key: ClientKey) -> eyre::Result<Vec<u8>> {
+        Ok(self
+            .get_lattice(key)
+            .await?
+            .into_lww()?
+            .into_revealed()
+            .into_value())
     }
 }
