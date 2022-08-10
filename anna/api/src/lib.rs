@@ -1,3 +1,5 @@
+//! Common lib for different of Anna nodes.
+
 use eyre::anyhow;
 use lattice::{
     causal::{MultiKeyCausalLattice, SingleKeyCausalLattice},

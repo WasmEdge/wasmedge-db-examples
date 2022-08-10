@@ -1,6 +1,6 @@
 # wasmedge-anna-driver
 
-**wasmedge-anna-driver** is a Rust client for [anna-rs](https://github.com/essa-project/anna-rs) based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge).
+**wasmedge-anna-driver** is a Rust client for [anna-rs](https://github.com/essa-project/anna-rs) based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge). It communicates with Anna routing nodes and KVS nodes via vanilla TCP connections instead of Zenoh.
 
 ## Usage
 
