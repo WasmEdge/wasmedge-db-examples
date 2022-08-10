@@ -1,7 +1,9 @@
 use std::time::Duration;
 
-use anna_client_tokio::{config::Config, nodes::ClientNode, topics::RoutingThread};
-use eyre::Context;
+use anna_client_tokio::{
+    config::Config, nodes::client::clientng::ClientNode, topics::RoutingThread,
+};
+use tokio::time;
 
 fn set_up_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
@@ -14,7 +16,7 @@ fn set_up_logger() -> Result<(), fern::InitError> {
                 message
             ))
         })
-        .level(log::LevelFilter::Info)
+        .level(log::LevelFilter::Trace)
         .chain(std::io::stdout())
         .apply()?;
     Ok(())
@@ -40,20 +42,23 @@ async fn main() -> eyre::Result<()> {
     let mut client = ClientNode::new(
         format!("client-{}", uuid::Uuid::new_v4()),
         0,
+        config.routing_ip,
+        config.routing_port_base,
         routing_threads,
         timeout,
     )?;
 
-    client.init_tcp_connections().await?;
+    // put value
+    client
+        .put_lww("time".into(), format!("{}", chrono::Utc::now()).into())
+        .await?;
+    log::info!("Successfully PUT `time`");
 
-    client.put_lww("foo".into(), "bar".into()).await?;
-    log::info!("Successfully put foo: bar");
-    futures_timer::Delay::new(Duration::from_secs(2)).await;
-    let value = client.get_lww("foo".into()).await?;
-    log::info!(
-        "Successfully get foo: {}",
-        String::from_utf8(value).context("value is not valid utf8")?
-    );
+    time::sleep(Duration::from_secs(1)).await;
+
+    // get value
+    let value = String::from_utf8(client.get_lww("time".into()).await?)?;
+    log::info!("Successfully GET `time`: {}", value);
 
     Ok(())
 }
