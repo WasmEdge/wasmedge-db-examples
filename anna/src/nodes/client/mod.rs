@@ -8,7 +8,11 @@ use std::{
 };
 
 use anna_api::{
-    lattice::{last_writer_wins::Timestamp, LastWriterWinsLattice, Lattice},
+    lattice::{
+        causal::{MultiKeyCausalLattice, MultiKeyCausalPayload, VectorClock},
+        last_writer_wins::Timestamp,
+        LastWriterWinsLattice, Lattice, MapLattice, MaxLattice, SetLattice,
+    },
     ClientKey, LatticeValue,
 };
 use eyre::{eyre, Context, ContextCompat};
@@ -383,5 +387,58 @@ impl Client {
             .into_lww()?
             .into_revealed()
             .into_value())
+    }
+
+    /// Try to put a set value with the given key.
+    pub async fn put_set(&mut self, key: ClientKey, set: HashSet<Vec<u8>>) -> eyre::Result<()> {
+        self.put_lattice(key, LatticeValue::Set(SetLattice::new(set)))
+            .await
+    }
+
+    /// Try to get a set value with the given key.
+    pub async fn get_set(&mut self, key: ClientKey) -> eyre::Result<HashSet<Vec<u8>>> {
+        Ok(self.get_lattice(key).await?.into_set()?.into_revealed())
+    }
+
+    /// Try to put a *multi-key causal* value with the given key.
+    pub async fn put_causal(&mut self, key: ClientKey, value: Vec<u8>) -> eyre::Result<()> {
+        // construct a test client id - version pair
+        let vector_clock = {
+            let mut vector_clock = VectorClock::default();
+            vector_clock.insert("test".into(), MaxLattice::new(1));
+            vector_clock
+        };
+        // construct one test dependencies
+        let dependencies = {
+            let mut dependencies = MapLattice::default();
+            dependencies.insert("dep1".into(), {
+                let mut clock = VectorClock::default();
+                clock.insert("test1".into(), MaxLattice::new(1));
+                clock
+            });
+            dependencies
+        };
+        // populate the value
+        let value = {
+            let mut map = SetLattice::default();
+            map.insert(value);
+            map
+        };
+        let mkcp = MultiKeyCausalPayload::new(vector_clock, dependencies, value);
+        let mkcl = MultiKeyCausalLattice::new(mkcp);
+
+        self.put_lattice(key, LatticeValue::MultiCausal(mkcl)).await
+    }
+
+    /// Try to get a *multi-key causal* value with the given key.
+    pub async fn get_causal(
+        &mut self,
+        key: ClientKey,
+    ) -> eyre::Result<MultiKeyCausalPayload<SetLattice<Vec<u8>>>> {
+        Ok(self
+            .get_lattice(key)
+            .await?
+            .into_multi_causal()?
+            .into_revealed())
     }
 }
