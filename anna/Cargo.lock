@@ -22,26 +22,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anna-client-tokio"
-version = "0.1.0"
-dependencies = [
- "anna-api",
- "argh",
- "chrono",
- "eyre",
- "fern",
- "futures",
- "futures-timer",
- "log",
- "once_cell",
- "rand",
- "serde",
- "serde_json",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "argh"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -598,6 +578,26 @@ name = "wasm-bindgen-shared"
 version = "0.2.82"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6598dd0bd3c7d51095ff6531a5b23e02acdc81804e30d8f07afb77b7215a140a"
+
+[[package]]
+name = "wasmedge-anna-driver"
+version = "0.1.0"
+dependencies = [
+ "anna-api",
+ "argh",
+ "chrono",
+ "eyre",
+ "fern",
+ "futures",
+ "futures-timer",
+ "log",
+ "once_cell",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+]
 
 [[package]]
 name = "wasmedge_wasi_socket"

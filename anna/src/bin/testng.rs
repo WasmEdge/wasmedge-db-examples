@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use anna_client_tokio::{
-    config::Config, nodes::client::clientng::ClientNode, topics::RoutingThread,
-};
+use wasmedge_anna_driver::{config::Config, nodes::client::ClientNode, topics::RoutingThread};
 
 fn set_up_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
