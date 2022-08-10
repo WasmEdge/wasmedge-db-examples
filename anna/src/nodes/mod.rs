@@ -1,6 +1,6 @@
 //! Abstractions for the node types, including the main types [`KvsNode`], [`RoutingNode`], and [`ClientNode`].
 
-pub use self::client::ClientNode;
+pub use self::client::Client;
 
 pub mod client;
 

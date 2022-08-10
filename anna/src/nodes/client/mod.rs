@@ -30,7 +30,7 @@ use self::client_request::ClientRequest;
 mod client_request;
 
 /// Anna client.
-pub struct ClientNode {
+pub struct Client {
     client_thread: ClientThread,
     routing_ip: IpAddr,
     routing_port_base: u16,
@@ -51,7 +51,7 @@ struct ThisClient {
 }
 
 impl ThisClient {
-    fn from(client: &ClientNode) -> Self {
+    fn from(client: &Client) -> Self {
         Self {
             address_response_promises: client.address_response_promises.clone(),
             response_promises: client.response_promises.clone(),
@@ -59,7 +59,7 @@ impl ThisClient {
     }
 }
 
-impl ClientNode {
+impl Client {
     /// Create a new client node.
     pub fn new(
         node_id: String,

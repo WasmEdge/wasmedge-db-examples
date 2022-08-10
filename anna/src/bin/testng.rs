@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wasmedge_anna_driver::{config::Config, nodes::client::ClientNode, topics::RoutingThread};
+use wasmedge_anna_driver::{config::Config, nodes::Client, topics::RoutingThread};
 
 fn set_up_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
@@ -36,7 +36,7 @@ async fn main() -> eyre::Result<()> {
         .collect();
 
     let timeout = Duration::from_secs(10);
-    let mut client = ClientNode::new(
+    let mut client = Client::new(
         format!("client-{}", uuid::Uuid::new_v4()),
         0,
         config.routing_ip,
