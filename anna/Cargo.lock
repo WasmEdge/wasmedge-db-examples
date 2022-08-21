@@ -14,6 +14,7 @@ dependencies = [
 [[package]]
 name = "anna-api"
 version = "0.1.0"
+source = "git+https://github.com/essa-project/anna-rs?rev=e60629b#e60629bc6bdaec69e48e1fb994a8cd798cb7a793"
 dependencies = [
  "chrono",
  "eyre",
