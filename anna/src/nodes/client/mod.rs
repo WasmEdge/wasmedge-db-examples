@@ -345,7 +345,6 @@ impl Client {
         let promise = self.make_response_promise(request_id).await;
         self.send_tcp_message(addr, TcpMessage::Request(request.into()))
             .await?;
-        println!("[rc] waiting for response");
         promise.await.map_err(Into::into)
     }
 
