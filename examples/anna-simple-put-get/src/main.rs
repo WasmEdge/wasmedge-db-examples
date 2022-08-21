@@ -11,10 +11,15 @@ async fn main() -> eyre::Result<()> {
         timeout: Duration::from_secs(10),
     })?;
 
+    // put the value
     let time = format!("{}", chrono::Utc::now());
-    client.put_lww("time".into(), time.into()).await?; // put the value
+    client.put_lww("time".into(), time.into()).await?;
     println!("Successfully PUT `time`");
-    tokio::time::sleep(Duration::from_secs(1)).await; // sleep 1 second
+
+    // sleep 1 second
+    tokio::time::sleep(Duration::from_secs(1)).await;
+
+    // get the value
     let bytes = client.get_lww("time".into()).await?;
     let value = String::from_utf8(bytes)?;
     println!("Successfully GET `time`: {}", value);
