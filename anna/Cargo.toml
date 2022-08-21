@@ -12,6 +12,7 @@ rand = "0.8.4"
 futures = "0.3.15"
 log = "0.4.14"
 serde_json = "1.0.64"
+uuid = { version = "1.0.0", features = ["v4"] }
 anna-api = { git = "https://github.com/essa-project/anna-rs", rev = "e60629b" }
 # tokio = { version = "1", features = [
 #     "rt",

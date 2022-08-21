@@ -27,8 +27,8 @@ use messages::Tier;
 use metadata::MetadataKey;
 
 pub mod nodes;
+pub use nodes::*;
 
-pub mod config;
 pub mod messages;
 pub mod metadata;
 pub mod store;

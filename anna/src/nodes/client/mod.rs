@@ -18,6 +18,7 @@ use anna_api::{
 use eyre::{eyre, Context, ContextCompat};
 use futures::Future;
 use rand::prelude::IteratorRandom;
+use serde::{Deserialize, Serialize};
 use tokio::{
     net::{tcp, TcpStream},
     sync::{oneshot, Mutex},
@@ -32,6 +33,19 @@ use crate::{
 use self::client_request::ClientRequest;
 
 mod client_request;
+
+/// Configuration for [`Client`].
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Serialize, Deserialize)]
+pub struct ClientConfig {
+    /// IP address of routing node.
+    pub routing_ip: IpAddr,
+    /// TCP port base of routing node.
+    pub routing_port_base: u16,
+    /// Number of threads used for routing.
+    pub routing_threads: u32,
+    /// Timeout for client requests.
+    pub timeout: Duration,
+}
 
 /// Anna client.
 pub struct Client {
@@ -65,22 +79,18 @@ impl ThisClient {
 
 impl Client {
     /// Create a new client node.
-    pub fn new(
-        node_id: String,
-        thread_id: u32,
-        routing_ip: IpAddr,
-        routing_port_base: u16,
-        routing_threads: Vec<RoutingThread>,
-        timeout: Duration,
-    ) -> eyre::Result<Self> {
-        assert!(!routing_threads.is_empty());
-        let client_thread = ClientThread::new(node_id, thread_id);
+    pub fn new(config: ClientConfig) -> eyre::Result<Self> {
+        assert!(config.routing_threads > 0);
+        let client_thread = ClientThread::new(format!("client-{}", uuid::Uuid::new_v4()), 0);
+        let routing_threads: Vec<_> = (0..config.routing_threads)
+            .map(|i| RoutingThread::new(i))
+            .collect();
         Ok(Self {
             client_thread,
-            routing_ip,
-            routing_port_base,
+            routing_ip: config.routing_ip,
+            routing_port_base: config.routing_port_base,
             routing_threads,
-            _timeout: timeout,
+            _timeout: config.timeout,
             next_request_id: 1,
             kvs_tcp_address_cache: Default::default(),
             key_address_cache: Default::default(),

@@ -1,8 +1,7 @@
 //! Abstractions for the node types, including the main types [`KvsNode`], [`RoutingNode`], and [`ClientNode`].
 
-pub use self::client::Client;
-
 pub mod client;
+pub use self::client::*;
 
 use eyre::{bail, Context};
 use tokio::{
