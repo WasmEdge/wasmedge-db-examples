@@ -1,0 +1,20 @@
+[package]
+name = "anna-simple-put-get"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+eyre = "0.6.5"
+argh = "0.1.4"
+log = "0.4.14"
+fern = "0.6.0"
+chrono = { version = "0.4.19", features = ["serde"] }
+uuid = { version = "1.0.0", features = ["v4"] }
+tokio = { git = "https://github.com/WasmEdge/tokio.git", branch = "wasmedge", features = [
+    "rt",
+    "time",
+    "macros",
+] }
+wasmedge-anna-driver = { path = "../../anna" }
+# wasmedge-anna-driver = { git = "https://github.com/WasmEdge/wasmedge-db-drivers" }
