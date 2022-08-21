@@ -4,6 +4,31 @@
 
 ## Usage
 
+```rust
+use std::time::Duration;
+use wasmedge_anna_driver::{Client, ClientConfig};
+
+let mut client = Client::new(ClientConfig {
+    routing_ip: "127.0.0.1".parse().unwrap(),
+    routing_port_base: 12340,
+    routing_threads: 1,
+    timeout: Duration::from_secs(10),
+})?;
+
+// put the value
+client.put_lww("foo".into(), "bar".into()).await?;
+
+// sleep 1 second
+tokio::time::sleep(Duration::from_secs(1)).await;
+
+// get the value
+let bytes = client.get_lww("foo".into()).await?;
+let value = String::from_utf8(bytes)?;
+println!("Successfully GET value of `foo`: {}", value);
+```
+
+## Run the example
+
 First, run routing node and KVS node of [the adapted version of anna-rs](https://github.com/second-state/anna-rs):
 
 ```sh
@@ -14,15 +39,12 @@ $ # in another shell instance
 $ ANNA_PUBLIC_IP=127.0.0.1 cargo run --bin kvs -- config.yml
 ```
 
-Then, build and run the test app of **wasmedge-anna-driver**:
+Then, build and run the example app of **wasmedge-anna-driver**:
 
 ```sh
-$ cd wasmedge-db-drivers/anna
+$ cd wasmedge-db-drivers/examples/anna-simple-put-get
 $ cargo build --target wasm32-wasi
-$ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/testng.wasm -h 127.0.0.1 -p 12340 -r 2
-# -h: IP address of routing node
-# -p: Base TCP port of routing threads
-# -r: Number of routinge threads
+$ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/anna-simple-put-get.wasm
 ```
 
 ## Attribution
