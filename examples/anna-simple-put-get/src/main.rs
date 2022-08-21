@@ -2,32 +2,8 @@ use std::time::Duration;
 
 use wasmedge_anna_driver::{Client, ClientConfig};
 
-fn set_up_logger() -> Result<(), fern::InitError> {
-    fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Trace)
-        .chain(std::io::stdout())
-        .apply()?;
-    Ok(())
-}
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> eyre::Result<()> {
-    if let Err(err) = set_up_logger() {
-        eprintln!(
-            "{:?}",
-            eyre::Error::new(err).wrap_err("failed to set up logger")
-        );
-    }
-
     let mut client = Client::new(ClientConfig {
         routing_ip: "127.0.0.1".parse().unwrap(),
         routing_port_base: 12340,
