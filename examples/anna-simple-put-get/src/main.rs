@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wasmedge_anna_driver::{config::Config, nodes::Client, topics::RoutingThread};
+use wasmedge_anna_driver::{Client, ClientConfig};
 
 fn set_up_logger() -> Result<(), fern::InitError> {
     fern::Dispatch::new()
@@ -28,30 +28,20 @@ async fn main() -> eyre::Result<()> {
         );
     }
 
-    let config: Config = argh::from_env();
-    log::info!("Loaded config from command line args: {:?}", config);
+    let mut client = Client::new(ClientConfig {
+        routing_ip: "127.0.0.1".parse().unwrap(),
+        routing_port_base: 12340,
+        routing_threads: 1,
+        timeout: Duration::from_secs(10),
+    })?;
 
-    let routing_threads: Vec<_> = (0..config.routing_threads)
-        .map(|i| RoutingThread::new(i))
-        .collect();
-
-    let timeout = Duration::from_secs(10);
-    let mut client = Client::new(
-        format!("client-{}", uuid::Uuid::new_v4()),
-        0,
-        config.routing_ip,
-        config.routing_port_base,
-        routing_threads,
-        timeout,
-    )?;
-
-    client
-        .put_lww("time".into(), format!("{}", chrono::Utc::now()).into())
-        .await?;
-    log::info!("Successfully PUT `time`");
-    tokio::time::sleep(Duration::from_secs(1)).await;
-    let value = String::from_utf8(client.get_lww("time".into()).await?)?;
-    log::info!("Successfully GET `time`: {}", value);
+    let time = format!("{}", chrono::Utc::now());
+    client.put_lww("time".into(), time.into()).await?; // put the value
+    println!("Successfully PUT `time`");
+    tokio::time::sleep(Duration::from_secs(1)).await; // sleep 1 second
+    let bytes = client.get_lww("time".into()).await?;
+    let value = String::from_utf8(bytes)?;
+    println!("Successfully GET `time`: {}", value);
 
     Ok(())
 }
