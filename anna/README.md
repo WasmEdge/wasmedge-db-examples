@@ -1,30 +1,27 @@
-# wasmedge-anna-driver
+# Examples for WasmEdge Anna Client
 
-**wasmedge-anna-driver** is a Rust client for [anna-rs](https://github.com/essa-project/anna-rs) based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge). It communicates with Anna routing nodes and KVS nodes via vanilla TCP connections instead of Zenoh.
+[**wasmedge-anna-client**](https://github.com/WasmEdge/wasmedge-anna-client) is a Rust client for [anna-rs] based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge). It communicates with Anna routing nodes and KVS nodes via vanilla TCP connections instead of Zenoh.
 
-## Usage
+[anna-rs]: https://github.com/essa-project/anna-rs
 
-First, run routing node and KVS node of [the adapted version of anna-rs](https://github.com/second-state/anna-rs):
+## Run the example
+
+First, run routing node and KVS node of [anna-rs]:
 
 ```sh
+$ git clone https://github.com/essa-project/anna-rs.git
 $ cd anna-rs
 $ cp example-config.yml config.yml
 $ ANNA_PUBLIC_IP=127.0.0.1 ANNA_TCP_PORT_BASE=12340 cargo run --bin routing -- config.yml
-$ # in another shell instance
+$ # in another shell
 $ ANNA_PUBLIC_IP=127.0.0.1 cargo run --bin kvs -- config.yml
 ```
 
-Then, build and run the test app of **wasmedge-anna-driver**:
+Then, build and run the example app in this repo:
 
 ```sh
-$ cd wasmedge-db-drivers/anna
+$ git clone https://github.com/WasmEdge/wasmedge-db-examples.git
+$ cd wasmedge-db-examples/anna
 $ cargo build --target wasm32-wasi
-$ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/testng.wasm -h 127.0.0.1 -p 12340 -r 2
-# -h: IP address of routing node
-# -p: Base TCP port of routing threads
-# -r: Number of routinge threads
+$ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/putget.wasm
 ```
-
-## Attribution
-
-Many code of this driver is derived from [anna-rs](https://github.com/essa-project/anna-rs).
