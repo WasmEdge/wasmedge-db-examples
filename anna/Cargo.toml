@@ -1,0 +1,15 @@
+[package]
+name = "wasmedge-anna-client-examples"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+eyre = "0.6.5"
+chrono = { version = "0.4.19", features = ["serde"] }
+tokio = { git = "https://github.com/WasmEdge/tokio", branch = "wasmedge", features = [
+    "rt",
+    "time",
+    "macros",
+] }
+wasmedge-anna-client = { git = "https://github.com/WasmEdge/wasmedge-anna-client" }

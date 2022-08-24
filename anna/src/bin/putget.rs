@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use wasmedge_anna_driver::{Client, ClientConfig};
+use wasmedge_anna_client::{Client, ClientConfig};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> eyre::Result<()> {
