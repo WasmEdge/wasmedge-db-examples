@@ -1,4 +1,4 @@
-# Examples of WasmEdge Anna Client
+# Examples for WasmEdge Anna Client
 
 [**wasmedge-anna-client**](https://github.com/WasmEdge/wasmedge-anna-client) is a Rust client for [anna-rs] based on [Tokio for WasmEdge](https://github.com/WasmEdge/tokio/tree/wasmedge). It communicates with Anna routing nodes and KVS nodes via vanilla TCP connections instead of Zenoh.
 
