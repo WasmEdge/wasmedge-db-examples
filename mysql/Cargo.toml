@@ -1,0 +1,8 @@
+[package]
+name = "wasmedge-mysql-driver-demo"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+mysql-wasi = {git = "https://github.com/WasmEdge/rust-mysql-simple-wasi.git"}
