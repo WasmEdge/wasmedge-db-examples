@@ -53,9 +53,14 @@ impl Order {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
+    // Alternative: The "easy" way with a default connection pool
+    // let pool = Pool::new(Opts::from_url(&*get_url()).unwrap());
+    // let mut conn = pool.get_conn().await.unwrap();
+
+    // Below we create a customized connection pool
     let opts = Opts::from_url(&*get_url()).unwrap();
     let builder = OptsBuilder::from_opts(opts);
-    // constrain the number of connections.
+    // The connection pool will have a min of 5 and max of 10 connections.
     let constraints = PoolConstraints::new(5, 10).unwrap();
     let pool_opts = PoolOpts::default().with_constraints(constraints);
 
@@ -67,6 +72,13 @@ async fn main() -> Result<()> {
         .with(())
         .map(&mut conn, |s: String| String::from(s))
         .await?;
+    // Alternative: Here is another way to run the SQL statement and get the result
+    // let result = conn
+    //     .query_iter("SHOW TABLES LIKE 'orders';")
+    //     .await?
+    //     .collect::<String>()
+    //     .await?
+    
     if result.len() == 0 {
         // table doesn't exist, create a new one
         r"CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(20));".ignore(&mut conn).await?;
