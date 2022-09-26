@@ -26,44 +26,34 @@ where
     Ok(result.collect().await?)
 }
 
-/*
-* OrderID integer
-* ProductID integer
-* Quantity integer
-* Amount float
-* Shipping float
-* Tax float
-* ShippingAddress string
-*/
-
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let pool = Pool::new(Opts::from_url(&*get_url()).unwrap());
     let mut conn = pool.get_conn().await.unwrap();
     // create table if no tables exist
     let result = conn
-        .query_iter("SHOW TABLES LIKE 'commerce';")
+        .query_iter("SHOW TABLES LIKE 'orders';")
         .await?
         .collect::<String>()
         .await?;
     if result.len() == 0 {
         // table doesn't exist, create a new one
         conn
-            .query_iter("CREATE TABLE commerce (OrderID INT, ProductID INT, Quantity INT, Amount FLOAT, Shipping FLOAT, Tax FLOAT, ShippingAddress VARCHAR(20));")
+            .query_iter("CREATE TABLE orders (OrderID INT, ProductID INT, Quantity INT, Amount FLOAT, Shipping FLOAT, Tax FLOAT, ShippingAddress VARCHAR(20));")
             .await?
             .collect::<String>()
             .await?;
         println!("create new table");
     } else {
         // delete all data from the table.
-        println!("delete all from commerce");
-        let _ = conn.query_iter("DELETE FROM commerce;").await?;
+        println!("delete all from orders");
+        let _ = conn.query_iter("DELETE FROM orders;").await?;
     }
 
     // insert some data
     let _ = conn
         .query_iter(
-            "INSERT INTO commerce VALUES 
+            "INSERT INTO orders VALUES 
     (1, 12, 2, 56.0, 15.0, 2.0, 'Mataderos 2312'),
     (2, 15, 3, 256.0, 30.0, 16.0, '1234 NW Bobcat Lane'),
     (3, 11, 5, 536.0, 50.0, 24.0, '20 Havelock'),
@@ -74,7 +64,7 @@ async fn main() -> Result<()> {
 
     // query data
     let result = conn
-        .query_iter("SELECT * from commerce;")
+        .query_iter("SELECT * from orders;")
         .await?
         .collect::<(i32, i32, i32, f32, f32, f32, String)>()
         .await?;
@@ -83,11 +73,11 @@ async fn main() -> Result<()> {
 
     // delete some data
     let _ = conn
-        .query_iter("DELETE FROM commerce WHERE OrderID=4;")
+        .query_iter("DELETE FROM orders WHERE OrderID=4;")
         .await?;
     // query data
     let result = conn
-        .query_iter("SELECT * from commerce;")
+        .query_iter("SELECT * from orders;")
         .await?
         .collect::<(i32, i32, i32, f32, f32, f32, String)>()
         .await?;
@@ -97,14 +87,14 @@ async fn main() -> Result<()> {
     // update some data
     let _ = conn
         .query_iter(
-            "UPDATE commerce
+            "UPDATE orders
     SET ShippingAddress = '8366 Elizabeth St.'
     WHERE OrderID = 2;",
         )
         .await?;
     // query data
     let result = conn
-        .query_iter("SELECT * from commerce;")
+        .query_iter("SELECT * from orders;")
         .await?
         .collect::<(i32, i32, i32, f32, f32, f32, String)>()
         .await?;
