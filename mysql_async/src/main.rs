@@ -1,4 +1,6 @@
-use mysql_async_wasi::{prelude::*, Opts, Pool, QueryResult, Result};
+use mysql_async_wasi::{
+    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, QueryResult, Result,
+};
 
 fn get_url() -> String {
     if let Ok(url) = std::env::var("DATABASE_URL") {
@@ -16,100 +18,162 @@ fn get_url() -> String {
     }
 }
 
-pub async fn get_all_results<TupleType, P>(
-    mut result: QueryResult<'_, '_, P>,
-) -> Result<Vec<TupleType>>
-where
-    TupleType: FromRow + Send + 'static,
-    P: Protocol + Send + 'static,
-{
-    Ok(result.collect().await?)
+#[derive(Debug)]
+struct Order {
+    order_id: i32,
+    production_id: i32,
+    quantity: i32,
+    amount: f32,
+    shipping: f32,
+    tax: f32,
+    shipping_address: String,
 }
 
-/*
-* OrderID integer
-* ProductID integer
-* Quantity integer
-* Amount float
-* Shipping float
-* Tax float
-* ShippingAddress string
-*/
+impl Order {
+    fn new(
+        order_id: i32,
+        production_id: i32,
+        quantity: i32,
+        amount: f32,
+        shipping: f32,
+        tax: f32,
+        shipping_address: String,
+    ) -> Self {
+        Self {
+            order_id,
+            production_id,
+            quantity,
+            amount,
+            shipping,
+            tax,
+            shipping_address,
+        }
+    }
+}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
-    let pool = Pool::new(Opts::from_url(&*get_url()).unwrap());
+    let opts = Opts::from_url(&*get_url()).unwrap();
+    let builder = OptsBuilder::from_opts(opts);
+    // constrain the number of connections.
+    let constraints = PoolConstraints::new(5, 10).unwrap();
+    let pool_opts = PoolOpts::default().with_constraints(constraints);
+
+    let pool = Pool::new(builder.pool_opts(pool_opts));
     let mut conn = pool.get_conn().await.unwrap();
+
     // create table if no tables exist
-    let result = conn
-        .query_iter("SHOW TABLES LIKE 'commerce';")
-        .await?
-        .collect::<String>()
+    let result = r"SHOW TABLES LIKE 'orders';"
+        .with(())
+        .map(&mut conn, |s: String| String::from(s))
         .await?;
     if result.len() == 0 {
         // table doesn't exist, create a new one
-        conn
-            .query_iter("CREATE TABLE commerce (OrderID INT, ProductID INT, Quantity INT, Amount FLOAT, Shipping FLOAT, Tax FLOAT, ShippingAddress VARCHAR(20));")
-            .await?
-            .collect::<String>()
-            .await?;
+        r"CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(20));".ignore(&mut conn).await?;
         println!("create new table");
     } else {
         // delete all data from the table.
-        println!("delete all from commerce");
-        let _ = conn.query_iter("DELETE FROM commerce;").await?;
+        println!("delete all from orders");
+        r"DELETE FROM orders;".ignore(&mut conn).await?;
     }
 
-    // insert some data
-    let _ = conn
-        .query_iter(
-            "INSERT INTO commerce VALUES 
-    (1, 12, 2, 56.0, 15.0, 2.0, 'Mataderos 2312'),
-    (2, 15, 3, 256.0, 30.0, 16.0, '1234 NW Bobcat Lane'),
-    (3, 11, 5, 536.0, 50.0, 24.0, '20 Havelock'),
-    (4, 8, 8, 126.0, 20.0, 12.0, '224 Pandan Loop'),
-    (5, 24, 1, 46.0, 10.0, 2.0, 'No.10 Jalan Besar');",
+    let orders = vec![
+        Order::new(1, 12, 2, 56.0, 15.0, 2.0, String::from("Mataderos 2312")),
+        Order::new(2, 15, 3, 256.0, 30.0, 16.0, String::from("1234 NW Bobcat")),
+        Order::new(3, 11, 5, 536.0, 50.0, 24.0, String::from("20 Havelock")),
+        Order::new(4, 8, 8, 126.0, 20.0, 12.0, String::from("224 Pandan Loop")),
+        Order::new(5, 24, 1, 46.0, 10.0, 2.0, String::from("No.10 Jalan Besar")),
+    ];
+
+    r"INSERT INTO orders (order_id, production_id, quantity, amount, shipping, tax, shipping_address)
+      VALUES (:order_id, :production_id, :quantity, :amount, :shipping, :tax, :shipping_address)"
+        .with(orders.iter().map(|order| {
+            params! {
+                "order_id" => order.order_id,
+                "production_id" => order.production_id,
+                "quantity" => order.quantity,
+                "amount" => order.amount,
+                "shipping" => order.shipping,
+                "tax" => order.tax,
+                "shipping_address" => &order.shipping_address,
+            }
+        }))
+        .batch(&mut conn)
+        .await?;
+
+    // query data
+    let loaded_orders = "SELECT * FROM orders"
+        .with(())
+        .map(
+            &mut conn,
+            |(order_id, production_id, quantity, amount, shipping, tax, shipping_address)| {
+                Order::new(
+                    order_id,
+                    production_id,
+                    quantity,
+                    amount,
+                    shipping,
+                    tax,
+                    shipping_address,
+                )
+            },
         )
         .await?;
+    dbg!(loaded_orders.len());
+    dbg!(loaded_orders);
+
+    // // delete some data
+    r"DELETE FROM orders WHERE order_id=4;"
+        .ignore(&mut conn)
+        .await?;
 
     // query data
-    let result = conn
-        .query_iter("SELECT * from commerce;")
-        .await?
-        .collect::<(i32, i32, i32, f32, f32, f32, String)>()
-        .await?;
-    dbg!(result.len());
-    dbg!(result);
-
-    // delete some data
-    let _ = conn
-        .query_iter("DELETE FROM commerce WHERE OrderID=4;")
-        .await?;
-    // query data
-    let result = conn
-        .query_iter("SELECT * from commerce;")
-        .await?
-        .collect::<(i32, i32, i32, f32, f32, f32, String)>()
-        .await?;
-    dbg!(result.len());
-    dbg!(result);
-
-    // update some data
-    let _ = conn
-        .query_iter(
-            "UPDATE commerce
-    SET ShippingAddress = '8366 Elizabeth St.'
-    WHERE OrderID = 2;",
+    let loaded_orders = "SELECT * FROM orders"
+        .with(())
+        .map(
+            &mut conn,
+            |(order_id, production_id, quantity, amount, shipping, tax, shipping_address)| {
+                Order::new(
+                    order_id,
+                    production_id,
+                    quantity,
+                    amount,
+                    shipping,
+                    tax,
+                    shipping_address,
+                )
+            },
         )
         .await?;
-    // query data
-    let result = conn
-        .query_iter("SELECT * from commerce;")
-        .await?
-        .collect::<(i32, i32, i32, f32, f32, f32, String)>()
+    dbg!(loaded_orders.len());
+    dbg!(loaded_orders);
+
+    // // update some data
+    r"UPDATE orders
+    SET shipping_address = '8366 Elizabeth St.'
+    WHERE order_id = 2;"
+        .ignore(&mut conn)
         .await?;
-    dbg!(result.len());
-    dbg!(result);
+    // query data
+    let loaded_orders = "SELECT * FROM orders"
+        .with(())
+        .map(
+            &mut conn,
+            |(order_id, production_id, quantity, amount, shipping, tax, shipping_address)| {
+                Order::new(
+                    order_id,
+                    production_id,
+                    quantity,
+                    amount,
+                    shipping,
+                    tax,
+                    shipping_address,
+                )
+            },
+        )
+        .await?;
+    dbg!(loaded_orders.len());
+    dbg!(loaded_orders);
 
     drop(conn);
     pool.disconnect().await.unwrap();
