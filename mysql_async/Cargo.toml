@@ -1,0 +1,8 @@
+[package]
+name = "crud"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mysql_async_wasi = {git="https://github.com/WasmEdge/mysql_async_wasi.git"}
+tokio = { git="https://github.com/WasmEdge/tokio.git", version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
