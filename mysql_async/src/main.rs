@@ -1,5 +1,5 @@
 use mysql_async_wasi::{
-    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, QueryResult, Result,
+    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, Result,
 };
 
 fn get_url() -> String {
