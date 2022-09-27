@@ -55,6 +55,7 @@ jobs:
 
     - name: Run Anna KVS
       run: |
+        cd anna-rs
         ANNA_PUBLIC_IP=127.0.0.1 nohup cargo run --bin kvs -- config.yml &
 
     - name: Install Rust target for wasm
@@ -89,10 +90,10 @@ jobs:
         wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm
         wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm
         
+    - name: Anna KVS examples
+      run: |
+        cd anna
+        cargo build --target wasm32-wasi --release
+        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
+        wasmedge putget.wasm
         
-        
-        
-  
-  
-  
-  
