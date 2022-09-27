@@ -52,7 +52,7 @@ jobs:
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/insert.wasm crud.wasm
+        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
         wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" crud.wasm
         
     - name: MySQL simple examples
