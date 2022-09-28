@@ -72,14 +72,28 @@ jobs:
         cd mysql_async
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" crud.wasm
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" crud.wasm)
+        echo "$resp"
+        if [[ $resp == *"Bobcat"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
     
     - name: TiDB async examples
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm)
+        echo "$resp"
+        if [[ $resp == *"Bobcat"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
     
     - name: MySQL simple examples
       run: |
@@ -87,13 +101,34 @@ jobs:
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
         wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
-        wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm
-        wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm)
+        echo "$resp"
+        if [[ $resp == *"localhost"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm)
+        echo "$resp"
+        if [[ $resp == *"foo"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
         
     - name: Anna KVS examples
       run: |
         cd anna
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
-        wasmedge putget.wasm
+        resp=$(wasmedge putget.wasm)
+        echo "$resp"
+        if [[ $resp == *"UTC"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
         
