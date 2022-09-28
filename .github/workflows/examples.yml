@@ -72,7 +72,7 @@ jobs:
         cd mysql_async
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" crud.wasm)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
           echo -e "Execution Success!"
@@ -86,7 +86,7 @@ jobs:
         cd mysql_async
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
           echo -e "Execution Success!"
@@ -101,7 +101,7 @@ jobs:
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
         wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"localhost"* ]]; then
           echo -e "Execution Success!"
@@ -109,7 +109,7 @@ jobs:
           echo -e "Execution Fail!"
           exit 1
         fi
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"foo"* ]]; then
           echo -e "Execution Success!"
@@ -123,7 +123,7 @@ jobs:
         cd anna
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
-        resp=$(wasmedge putget.wasm)
+        resp=$(wasmedge putget.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
           echo -e "Execution Success!"
