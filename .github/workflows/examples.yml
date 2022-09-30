@@ -90,6 +90,20 @@ jobs:
           exit 1
         fi
         
+    - name: Anna KVS examples
+      run: |
+        cd anna
+        cargo build --target wasm32-wasi --release
+        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
+        resp=$(wasmedge putget.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"UTC"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+        
     - name: MySQL async examples
       run: |
         cd mysql_async
@@ -118,17 +132,3 @@ jobs:
           exit 1
         fi
     
-    - name: Anna KVS examples
-      run: |
-        cd anna
-        cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
-        resp=$(wasmedge putget.wasm 2>&1)
-        echo "$resp"
-        if [[ $resp == *"UTC"* ]]; then
-          echo -e "Execution Success!"
-        else
-          echo -e "Execution Fail!"
-          exit 1
-        fi
-        

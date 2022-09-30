@@ -7,7 +7,7 @@ license = "Apache-2.0"
 [dependencies]
 eyre = "0.6.5"
 chrono = { version = "0.4.19", features = ["serde"] }
-tokio = { git = "https://github.com/WasmEdge/tokio", branch = "wasmedge", features = [
+tokio_wasi = { version = "1.21", features = [
     "rt",
     "time",
     "macros",
