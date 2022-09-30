@@ -1,5 +1,5 @@
-use mysql::prelude::*;
-use mysql::*;
+use mysql_wasi::prelude::*;
+use mysql_wasi::*;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Payment {
