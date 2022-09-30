@@ -5,4 +5,4 @@ edition = "2021"
 
 
 [dependencies]
-mysql_wasi = "22.2.0"
+mysql_wasi = "22.2.1"
