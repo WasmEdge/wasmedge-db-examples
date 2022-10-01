@@ -5,4 +5,4 @@ edition = "2021"
 
 
 [dependencies]
-mysql-wasi = {git = "https://github.com/WasmEdge/rust-mysql-simple-wasi.git"}
+mysql_wasi = "22.2.1"
