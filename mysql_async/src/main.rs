@@ -1,4 +1,4 @@
-use mysql_async_wasi::{
+use mysql_async::{
     prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, QueryResult, Result,
 };
 

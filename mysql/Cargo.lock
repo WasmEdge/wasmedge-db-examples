@@ -594,31 +594,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mysql-wasi"
-version = "22.2.0"
-source = "git+https://github.com/WasmEdge/rust-mysql-simple-wasi.git#6afe01453a54675fa7d7c0afcdcc5247a7dac3ee"
-dependencies = [
- "bufstream",
- "bytes",
- "crossbeam",
- "flate2",
- "io-enum",
- "libc",
- "lru",
- "mysql_common",
- "named_pipe",
- "once_cell",
- "pem",
- "percent-encoding",
- "serde",
- "serde_json",
- "socket2",
- "twox-hash",
- "url",
- "wasmedge_wasi_socket",
-]
-
-[[package]]
 name = "mysql_common"
 version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -653,6 +628,32 @@ dependencies = [
  "thiserror",
  "time",
  "uuid",
+]
+
+[[package]]
+name = "mysql_wasi"
+version = "22.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5bcd190bde6e4e9ff7cc656f8a821f4a2246bb2359212fa72b82be9637a0090b"
+dependencies = [
+ "bufstream",
+ "bytes",
+ "crossbeam",
+ "flate2",
+ "io-enum",
+ "libc",
+ "lru",
+ "mysql_common",
+ "named_pipe",
+ "once_cell",
+ "pem",
+ "percent-encoding",
+ "serde",
+ "serde_json",
+ "socket2",
+ "twox-hash",
+ "url",
+ "wasmedge_wasi_socket",
 ]
 
 [[package]]
@@ -1081,13 +1082,14 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 name = "wasmedge-mysql-driver-demo"
 version = "0.1.0"
 dependencies = [
- "mysql-wasi",
+ "mysql_wasi",
 ]
 
 [[package]]
 name = "wasmedge_wasi_socket"
-version = "0.4.1"
-source = "git+https://github.com/second-state/wasmedge_wasi_socket#f285caf97e059b1740c6a2faf953d96e90147ace"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fc4e93009d7e2c2e3d29b65d1f56ef606466673e85fe417808beca50cb608bf"
 dependencies = [
  "libc",
 ]
