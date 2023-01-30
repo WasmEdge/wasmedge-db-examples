@@ -66,20 +66,6 @@ jobs:
       run: |
         VERSION=0.11.2
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
-
-    - name: Anna KVS examples
-      run: |
-        cd anna
-        cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
-        resp=$(wasmedge putget.wasm 2>&1)
-        echo "$resp"
-        if [[ $resp == *"UTC"* ]]; then
-          echo -e "Execution Success!"
-        else
-          echo -e "Execution Fail!"
-          exit 1
-        fi
         
     - name: MySQL async examples
       run: |
@@ -126,6 +112,20 @@ jobs:
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"foo"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+
+    - name: Anna KVS examples
+      run: |
+        cd anna
+        cargo build --target wasm32-wasi --release
+        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
+        resp=$(wasmedge putget.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"UTC"* ]]; then
           echo -e "Execution Success!"
         else
           echo -e "Execution Fail!"
