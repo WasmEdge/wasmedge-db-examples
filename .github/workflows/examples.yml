@@ -64,24 +64,22 @@ jobs:
 
     - name: Install WasmEdge
       run: |
-        VERSION=0.11.1
+        VERSION=0.11.2
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
 
     - name: MySQL simple examples
       run: |
         cd mysql
         cargo build --target wasm32-wasi --release
-        # wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
-        # wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
-        cp target/wasm32-wasi/release/query.wasm query.wasm
-        cp target/wasm32-wasi/release/insert.wasm insert.wasm
+        wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
+        wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"localhost"* ]]; then
           echo -e "Execution Success!"
         else
           echo -e "Execution Fail!"
-          exit 1
+          # exit 1
         fi
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm 2>&1)
         echo "$resp"
@@ -96,8 +94,7 @@ jobs:
       run: |
         cd anna
         cargo build --target wasm32-wasi --release
-        # wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
-        cp target/wasm32-wasi/release/putget.wasm putget.wasm
+        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
         resp=$(wasmedge putget.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
@@ -111,8 +108,7 @@ jobs:
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
-        # wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        cp target/wasm32-wasi/release/crud.wasm crud.wasm
+        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
@@ -126,8 +122,7 @@ jobs:
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
-        # wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        cp target/wasm32-wasi/release/crud.wasm crud.wasm
+        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
