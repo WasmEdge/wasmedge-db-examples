@@ -73,7 +73,7 @@ jobs:
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
         wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm 2>&1)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" query.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"localhost"* ]]; then
           echo -e "Execution Success!"
