@@ -109,7 +109,7 @@ jobs:
           echo -e "Execution Fail!"
           exit 1
         fi
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" insert.wasm 2>&1)
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" insert.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"foo"* ]]; then
           echo -e "Execution Success!"
