@@ -1,10 +1,18 @@
 use redis::Commands;
 use anyhow::Result;
 
+fn get_url() -> String {
+    if let Ok(url) = std::env::var("REDIS_URL") {
+        url
+    } else {
+        "redis://127.0.0.1/".into()
+    }
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     // connect to redis
-    let client = redis::Client::open("redis://127.0.0.1/")?;
+    let client = redis::Client::open(&*get_url())?;
     let mut con = client.get_connection()?;
 
     let time = format!("{}", chrono::Utc::now());

@@ -59,8 +59,8 @@ jobs:
         # sudo pg_ctlcluster 12 main start
         sudo systemctl start postgresql.service
         sleep 10
-        sudo createuser -w wasmedge 
-        sudo createdb -O wasmedge testdb
+        sudo -u postgres createuser -w wasmedge 
+        sudo -u postgres createdb -O wasmedge testdb
     
     - name: Install Anna KVS and run router
       run: |
@@ -139,7 +139,7 @@ jobs:
         cd redis
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
-        resp=$(wasmedge wasmedge-redis-client-examples.wasm 2>&1)
+        resp=$(wasmedge --env "REDIS_URL=redis://localhost/" wasmedge-redis-client-examples.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
           echo -e "Execution Success!"

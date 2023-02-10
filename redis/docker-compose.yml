@@ -1,0 +1,17 @@
+services:
+  client:
+    image: demo-redis
+    platform: wasi/wasm
+    build:
+      context: .
+    environment:
+      REDIS_URL: redis://cache/
+      RUST_BACKTRACE: full
+    restart: on-failure
+    runtime: io.containerd.wasmedge.v1
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
