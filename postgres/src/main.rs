@@ -56,6 +56,7 @@ async fn main() -> Result<(), Error> {
     });
     eprintln!("2");
 
+    /*
     client.execute("CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(256));", &[]).await?;
     eprintln!("3");
 
@@ -78,8 +79,8 @@ async fn main() -> Result<(), Error> {
 
     let rows = client.query("SELECT * FROM orders;", &[]).await?;
     println!("{:#?}", rows);
+    */
 
-    /*
     // Now we can execute a simple statement that just returns its parameter.
     let rows = client
         .query("SELECT $1::TEXT", &[&"hello WasmEdge"])
@@ -89,7 +90,6 @@ async fn main() -> Result<(), Error> {
     let value: &str = rows[0].get(0);
     println!("{}", value);
     // assert_eq!(value, "hello world");
-    */
 
     Ok(())
 }
