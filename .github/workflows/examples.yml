@@ -46,6 +46,18 @@ jobs:
         tiup playground $(DB_VERSION) --db 1 --pd 1 --kv 1 &
         while ! nc -W 1 localhost 4000 | grep -q -P '.+'; do sleep 1; done
     
+    - name: Install and run Redis
+      run: |
+        sudo apt-get update
+        sudo apt install redis-server
+        sudo systemctl status redis-server
+    
+    - name: Install and run PostgreSQL
+      run: |
+        sudo apt-get update
+        sudo apt install postgresql postgresql-contrib
+        sudo systemctl start postgresql.service
+    
     - name: Install Anna KVS and run router
       run: |
         git clone https://github.com/essa-project/anna-rs.git
@@ -118,6 +130,20 @@ jobs:
           exit 1
         fi
 
+    - name: Redis examples
+      run: |
+        cd redis
+        cargo build --target wasm32-wasi --release
+        wasmedgec target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
+        resp=$(wasmedge wasmedge-redis-client-examples.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"UTC"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+    
 #    - name: Anna KVS examples
 #      run: |
 #        cd anna

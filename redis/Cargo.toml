@@ -1,0 +1,11 @@
+[package]
+name = "wasmedge-redis-client-examples"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4.19", features = ["serde"] }
+tokio_wasi = { version = "1", features = ["rt", "time", "macros"] }
+redis_wasi = "0.22"
