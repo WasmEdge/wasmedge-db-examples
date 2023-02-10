@@ -135,7 +135,7 @@ jobs:
         cd redis
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
-        resp=$(wasmedge wasmedge-redis-client-examples.wasm 2>&1)
+        resp=$(wasmedge --env "DATABASE_URL=postgres://postgres@localhost/postgres" wasmedge-redis-client-examples.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
           echo -e "Execution Success!"

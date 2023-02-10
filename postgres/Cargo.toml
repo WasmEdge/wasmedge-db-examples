@@ -1,0 +1,8 @@
+[package]
+name = "crud"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio-postgres_wasi = "0.7"
+tokio_wasi = { version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
