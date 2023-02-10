@@ -56,7 +56,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt install postgresql postgresql-contrib
-        pg_ctlcluster 12 main start
+        sudo pg_ctlcluster 12 main start
         # sudo systemctl start postgresql.service
     
     - name: Install Anna KVS and run router
