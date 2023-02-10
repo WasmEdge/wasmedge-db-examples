@@ -56,8 +56,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt install postgresql postgresql-contrib
-        sudo pg_ctlcluster 12 main start
-        # sudo systemctl start postgresql.service
+        # sudo pg_ctlcluster 12 main start
+        sudo systemctl start postgresql.service
+        sleep 10
+        sudo -u postgres
+        psql -c "create role wasmedge with login password 'mysecret';"
     
     - name: Install Anna KVS and run router
       run: |
@@ -150,7 +153,7 @@ jobs:
         cd postgres
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        resp=$(wasmedge --env "DATABASE_URL=postgres://postgres@localhost/postgres" crud.wasm 2>&1)
+        resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/postgres" crud.wasm 2>&1)
         echo "$resp"
 
 #    - name: Anna KVS examples
