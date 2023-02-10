@@ -45,6 +45,7 @@ impl Order {
 async fn main() -> Result<(), Error> {
     // Connect to the database.
     let (client, connection) = tokio_postgres::connect(&*get_url(), NoTls).await?;
+    eprintln!("1");
 
     // The connection object performs the actual communication with the database,
     // so spawn it off to run on its own.
@@ -53,8 +54,10 @@ async fn main() -> Result<(), Error> {
             eprintln!("connection error: {}", e);
         }
     });
+    eprintln!("2");
 
-    client.query("CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(256));", &[]).await?;
+    client.execute("CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(256));", &[]).await?;
+    eprintln!("3");
 
     let orders = vec![
         Order::new(1, 12, 2, 56.0, 15.0, 2.0, String::from("Mataderos 2312")),
@@ -63,16 +66,18 @@ async fn main() -> Result<(), Error> {
         Order::new(4, 8, 8, 126.0, 20.0, 12.0, String::from("224 Pandan Loop")),
         Order::new(5, 24, 1, 46.0, 10.0, 2.0, String::from("No.10 Jalan Besar")),
     ];
+    eprintln!("4");
 
     for order in orders.iter() {
-        client.query(
+        client.execute(
             "INSERT INTO orders (order_id, production_id, quantity, amount, shipping, tax, shipping_address) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             &[&order.order_id, &order.production_id, &order.quantity, &order.amount, &order.shipping, &order.tax, &order.shipping_address]
         ).await?;
+        eprintln!("5x");
     }
 
     let rows = client.query("SELECT * FROM orders;", &[]).await?;
-    println!("{:?}", rows);
+    println!("{:#?}", rows);
 
     /*
     // Now we can execute a simple statement that just returns its parameter.
