@@ -61,6 +61,7 @@ jobs:
         sleep 10
         sudo -u postgres createuser -w wasmedge 
         sudo -u postgres createdb -O wasmedge testdb
+        sudo -u postgres psql -c "ALTER USER wasmedge PASSWORD 'mysecret';"
         sudo -u postgres psql -c 'SELECT datname FROM pg_catalog.pg_database'
     
     - name: Install Anna KVS and run router
@@ -154,7 +155,7 @@ jobs:
         cd postgres
         cargo build --target wasm32-wasi --release
         wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge@localhost/testdb" crud.wasm 2>&1)
+        resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/testdb" crud.wasm 2>&1)
         echo "$resp"
 
 #    - name: Anna KVS examples
