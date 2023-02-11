@@ -1,0 +1,19 @@
+services:
+  client:
+    image: demo-postgres
+    platform: wasi/wasm
+    build:
+      context: .
+    environment:
+      REDIS_URL: postgres://wasmedge:rocks@db/testdb
+      RUST_BACKTRACE: full
+    restart: on-failure
+    runtime: io.containerd.wasmedge.v1
+  db:
+    image: postgres:14.1-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=wasmedge
+      - POSTGRES_PASSWORD=rocks
+    ports:
+      - '5432:5432'

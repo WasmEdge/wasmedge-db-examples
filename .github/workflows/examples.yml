@@ -61,6 +61,7 @@ jobs:
         sleep 10
         sudo -u postgres createuser -w wasmedge 
         sudo -u postgres createdb -O wasmedge testdb
+        sudo -u postgres psql -c 'SELECT datname FROM pg_catalog.pg_database'
     
     - name: Install Anna KVS and run router
       run: |
