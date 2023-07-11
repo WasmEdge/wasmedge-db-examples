@@ -64,17 +64,17 @@ jobs:
         sudo -u postgres psql -c "ALTER USER wasmedge PASSWORD 'mysecret';"
         sudo -u postgres psql -c 'SELECT datname FROM pg_catalog.pg_database'
     
-    - name: Install Anna KVS and run router
-      run: |
-        git clone https://github.com/essa-project/anna-rs.git
-        cd anna-rs
-        cp example-config.yml config.yml
-        ANNA_PUBLIC_IP=127.0.0.1 ANNA_TCP_PORT_BASE=12340 nohup cargo run --bin routing -- config.yml &
+#    - name: Install Anna KVS and run router
+#      run: |
+#        git clone https://github.com/essa-project/anna-rs.git
+#        cd anna-rs
+#        cp example-config.yml config.yml
+#        ANNA_PUBLIC_IP=127.0.0.1 ANNA_TCP_PORT_BASE=12340 nohup cargo run --bin routing -- config.yml &
 
-    - name: Run Anna KVS
-      run: |
-        cd anna-rs
-        ANNA_PUBLIC_IP=127.0.0.1 nohup cargo run --bin kvs -- config.yml &
+#    - name: Run Anna KVS
+#      run: |
+#        cd anna-rs
+#        ANNA_PUBLIC_IP=127.0.0.1 nohup cargo run --bin kvs -- config.yml &
 
     - name: Install Rust target for wasm
       run: |
@@ -82,7 +82,7 @@ jobs:
 
     - name: Install WasmEdge
       run: |
-        VERSION=0.12.1
+        VERSION=0.13.1
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
         
     - name: MySQL async examples
