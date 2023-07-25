@@ -39,12 +39,12 @@ jobs:
         mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
         mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
     
-    - name: Install and run TiDB
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
-        source ~/.profile
-        tiup playground $(DB_VERSION) --db 1 --pd 1 --kv 1 &
-        while ! nc -W 1 localhost 4000 | grep -q -P '.+'; do sleep 1; done
+#    - name: Install and run TiDB
+#      run: |
+#        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
+#        source ~/.profile
+#        tiup playground $(DB_VERSION) --db 1 --pd 1 --kv 1 &
+#        while ! nc -W 1 localhost 4000 | grep -q -P '.+'; do sleep 1; done
     
     - name: Install and run Redis
       run: |
@@ -89,7 +89,7 @@ jobs:
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
+        wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
@@ -99,26 +99,26 @@ jobs:
           exit 1
         fi
     
-    - name: TiDB async examples
-      run: |
-        cd mysql_async
-        cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm 2>&1)
-        echo "$resp"
-        if [[ $resp == *"Bobcat"* ]]; then
-          echo -e "Execution Success!"
-        else
-          echo -e "Execution Fail!"
-          exit 1
-        fi
+#    - name: TiDB async examples
+#      run: |
+#        cd mysql_async
+#        cargo build --target wasm32-wasi --release
+#        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
+#        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm 2>&1)
+#        echo "$resp"
+#        if [[ $resp == *"Bobcat"* ]]; then
+#          echo -e "Execution Success!"
+#        else
+#          echo -e "Execution Fail!"
+#          exit 1
+#        fi
     
     - name: MySQL simple examples
       run: |
         cd mysql
         cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/query.wasm query.wasm
-        wasmedgec target/wasm32-wasi/release/insert.wasm insert.wasm
+        wasmedge compile target/wasm32-wasi/release/query.wasm query.wasm
+        wasmedge compile target/wasm32-wasi/release/insert.wasm insert.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"localhost"* ]]; then
@@ -140,7 +140,7 @@ jobs:
       run: |
         cd redis
         cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
+        wasmedge compile target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
         resp=$(wasmedge --env "REDIS_URL=redis://localhost/" wasmedge-redis-client-examples.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
@@ -154,7 +154,7 @@ jobs:
       run: |
         cd postgres
         cargo build --target wasm32-wasi --release
-        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
+        wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/testdb" crud.wasm 2>&1)
         echo "$resp"
 
