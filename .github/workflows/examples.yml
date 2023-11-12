@@ -40,13 +40,6 @@ jobs:
         mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
         mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
     
-#    - name: Install and run TiDB
-#      run: |
-#        curl --proto '=https' --tlsv1.2 -sSf https://tiup-mirrors.pingcap.com/install.sh | sh
-#        source ~/.profile
-#        tiup playground $(DB_VERSION) --db 1 --pd 1 --kv 1 &
-#        while ! nc -W 1 localhost 4000 | grep -q -P '.+'; do sleep 1; done
-    
     - name: Install and run Redis
       run: |
         sudo apt-get update
@@ -104,7 +97,7 @@ jobs:
           exit 1
         fi
 
-    - name: MySQL tls async examples
+    - name: MySQL tls async examples w TiDB serverless
       env: 
         DB_URL: ${{ secrets.DB_URL }}
       run: |
@@ -117,20 +110,6 @@ jobs:
           echo -e "Execution Fail!"
           exit 1
         fi
-    
-#    - name: TiDB async examples
-#      run: |
-#        cd mysql_async
-#        cargo build --target wasm32-wasi --release
-#        wasmedgec target/wasm32-wasi/release/crud.wasm crud.wasm
-#        resp=$(wasmedge --env "DATABASE_URL=mysql://root@127.0.0.1:4000/mysql" crud.wasm 2>&1)
-#        echo "$resp"
-#        if [[ $resp == *"Bobcat"* ]]; then
-#          echo -e "Execution Success!"
-#        else
-#          echo -e "Execution Fail!"
-#          exit 1
-#        fi
     
     - name: MySQL simple examples
       run: |
