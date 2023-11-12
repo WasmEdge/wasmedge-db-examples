@@ -1,5 +1,5 @@
 use mysql_async::{
-    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, Result,
+    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, Result, SslOpts,
 };
 
 fn get_url() -> String {
@@ -59,7 +59,10 @@ async fn main() -> Result<()> {
 
     // Below we create a customized connection pool
     let opts = Opts::from_url(&*get_url()).unwrap();
-    let builder = OptsBuilder::from_opts(opts);
+    let mut builder = OptsBuilder::from_opts(opts);
+    if std::env::var("DATABASE_SSL").is_ok() {
+        builder = builder.ssl_opts(SslOpts::default());
+    }
     // The connection pool will have a min of 5 and max of 10 connections.
     let constraints = PoolConstraints::new(5, 10).unwrap();
     let pool_opts = PoolOpts::default().with_constraints(constraints);
@@ -78,7 +81,7 @@ async fn main() -> Result<()> {
     //     .await?
     //     .collect::<String>()
     //     .await?
-    
+
     if result.len() == 0 {
         // table doesn't exist, create a new one
         r"CREATE TABLE orders (order_id INT, production_id INT, quantity INT, amount FLOAT, shipping FLOAT, tax FLOAT, shipping_address VARCHAR(20));".ignore(&mut conn).await?;

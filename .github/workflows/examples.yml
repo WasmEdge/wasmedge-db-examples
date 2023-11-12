@@ -85,6 +85,10 @@ jobs:
       run: |
         VERSION=0.13.5
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
+        wget https://github.com/WasmEdge/WasmEdge/releases/download/0.13.4/WasmEdge-plugin-wasmedge_rustls-0.13.4-ubuntu20.04_x86_64.tar.gz
+        sudo mkdir -p /usr/local/lib/wasmedge
+        tar -zxf WasmEdge-plugin-wasmedge_rustls-*-ubuntu20.04_x86_64.tar.gz
+        sudo mv libwasmedge_rustls.so /usr/local/lib/wasmedge/
         
     - name: MySQL async examples
       run: |
@@ -92,6 +96,20 @@ jobs:
         cargo build --target wasm32-wasi --release
         wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" crud.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"Bobcat"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+
+    - name: MySQL tls async examples
+      env: 
+        DB_URL: ${{ secrets.DB_URL }}
+      run: |
+        cd mysql_async
+        resp=$(wasmedge --env "DATABASE_SSL=1" --env "DATABASE_URL=${DB_URL}" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
           echo -e "Execution Success!"
