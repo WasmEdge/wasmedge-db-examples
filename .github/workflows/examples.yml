@@ -87,7 +87,6 @@ jobs:
       run: |
         cd mysql_async
         cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
