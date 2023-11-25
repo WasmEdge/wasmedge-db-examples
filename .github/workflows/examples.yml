@@ -19,7 +19,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      
+
     - name: Install apt-get packages
       run: |
         echo RESET grub-efi/install_devices | sudo debconf-communicate grub-pc
@@ -39,13 +39,13 @@ jobs:
         mysql -e "SET @@GLOBAL.GTID_MODE = ON_PERMISSIVE;" -uroot -proot
         mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
         mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
-    
+
     - name: Install and run Redis
       run: |
         sudo apt-get update
         sudo apt install redis-server
         sudo systemctl status redis-server
-    
+
     - name: Install and run PostgreSQL
       run: |
         sudo apt-get update
@@ -53,11 +53,16 @@ jobs:
         # sudo pg_ctlcluster 12 main start
         sudo systemctl start postgresql.service
         sleep 10
-        sudo -u postgres createuser -w wasmedge 
+        sudo -u postgres createuser -w wasmedge
         sudo -u postgres createdb -O wasmedge testdb
         sudo -u postgres psql -c "ALTER USER wasmedge PASSWORD 'mysecret';"
         sudo -u postgres psql -c 'SELECT datname FROM pg_catalog.pg_database'
-    
+
+    - name: Install and run GreptimeDB
+      run: |
+        curl -L https://github.com/GreptimeTeam/greptimedb/raw/develop/scripts/install.sh | sh
+        ./greptime standalone start &
+
 #    - name: Install Anna KVS and run router
 #      run: |
 #        git clone https://github.com/essa-project/anna-rs.git
@@ -78,7 +83,7 @@ jobs:
       run: |
         VERSION=0.13.5
         curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --plugins wasmedge_rustls --version=$VERSION -p /usr/local
-        
+
     - name: MySQL async examples
       run: |
         cd mysql_async
@@ -93,20 +98,14 @@ jobs:
           exit 1
         fi
 
-    - name: MySQL tls async examples w TiDB serverless
-      env: 
-        DB_URL: ${{ secrets.DB_URL }}
+    - name: GreptimeDB examples
       run: |
-        cd mysql_async
-        resp=$(wasmedge --env "DATABASE_SSL=1" --env "DATABASE_URL=${DB_URL}" crud.wasm 2>&1)
+        cd greptimedb
+        cargo build --target wasm32-wasi --release
+        wasmedge compile target/wasm32-wasi/release/greptimedb.wasm greptimedb.wasm
+        resp=$(wasmedge --env "DATABASE_URL=mysql://localhost:4002/public" greptimedb.wasm 2>&1)
         echo "$resp"
-        if [[ $resp == *"Bobcat"* ]]; then
-          echo -e "Execution Success!"
-        else
-          echo -e "Execution Fail!"
-          exit 1
-        fi
-    
+
     - name: MySQL simple examples
       run: |
         cd mysql
@@ -143,7 +142,7 @@ jobs:
           echo -e "Execution Fail!"
           exit 1
         fi
-    
+
     - name: PostgresSQL examples
       run: |
         cd postgres
@@ -165,3 +164,17 @@ jobs:
 #          echo -e "Execution Fail!"
 #          exit 1
 #        fi
+
+    - name: MySQL tls async examples w TiDB serverless
+      env:
+        DB_URL: ${{ secrets.DB_URL }}
+      run: |
+        cd mysql_async
+        resp=$(wasmedge --env "DATABASE_SSL=1" --env "DATABASE_URL=${DB_URL}" crud.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"Bobcat"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
