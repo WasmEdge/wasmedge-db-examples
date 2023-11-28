@@ -1,4 +1,6 @@
-use mysql_async::{prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, Result};
+use mysql_async::{
+    prelude::*, Opts, OptsBuilder, Pool, PoolConstraints, PoolOpts, Result, SslOpts,
+};
 use time::PrimitiveDateTime;
 
 fn get_url() -> String {
@@ -55,14 +57,13 @@ async fn main() -> Result<()> {
 
     // Below we create a customized connection pool
     let opts = Opts::from_url(&*get_url()).unwrap();
-    let builder = OptsBuilder::from_opts(opts);
+    let mut builder = OptsBuilder::from_opts(opts);
     // Disabled after we figured out tls issue.
-    // if std::env::var("DATABASE_SSL").is_ok() {
-    //     let ssl_opts = SslOpts::default()
-    //         .with_danger_accept_invalid_certs(true)
-    //         .with_danger_skip_domain_validation(true);
-    //     builder = builder.ssl_opts(ssl_opts);
-    // }
+    if std::env::var("DATABASE_SSL").is_ok() {
+        let ssl_opts = SslOpts::default().with_danger_accept_invalid_certs(true);
+        // .with_danger_skip_domain_validation(true);
+        builder = builder.ssl_opts(ssl_opts);
+    }
     // The connection pool will have a min of 5 and max of 10 connections.
     let constraints = PoolConstraints::new(1, 2).unwrap();
     let pool_opts = PoolOpts::default().with_constraints(constraints);
