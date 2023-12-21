@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-mysql_async_wasi = { version = "0.31", features = [ "default-rustls" ] }
+mysql_async_wasi = { version = "0.33", features = [ "default-rustls" ] }
 tokio_wasi = { version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
