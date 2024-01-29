@@ -1,0 +1,12 @@
+[package]
+name = "qdrant_examples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+url = "2.3"
+tokio_wasi = { version = "1", features = ["io-util", "fs", "net", "time", "rt", "macros"] }
+qdrant_rest_client = "0.0.1"

@@ -63,6 +63,11 @@ jobs:
         curl -L https://github.com/GreptimeTeam/greptimedb/raw/develop/scripts/install.sh | sh
         ./greptime standalone start &
 
+    - name: Install and run Qdrant in Docker
+      run: |
+        mkdir qdrant_storage
+        nohup docker run -d -p 6333:6333 -p 6334:6334 -v ${{ github.workspace }}/qdrant_storage:/qdrant/storage:z qdrant/qdrant
+
 #    - name: Install Anna KVS and run router
 #      run: |
 #        git clone https://github.com/essa-project/anna-rs.git
@@ -149,6 +154,14 @@ jobs:
         cargo build --target wasm32-wasi --release
         wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/testdb" crud.wasm 2>&1)
+        echo "$resp"
+
+    - name: Qdrant examples
+      run: |
+        cd qdrant
+        cargo build --target wasm32-wasi --release
+        wasmedge compile target/wasm32-wasi/release/qdrant_examples.wasm qdrant_examples.wasm
+        resp=$(wasmedge qdrant_examples.wasm 2>&1)
         echo "$resp"
 
 #    - name: Anna KVS examples
