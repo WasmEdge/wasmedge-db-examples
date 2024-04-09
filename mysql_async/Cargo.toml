@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 mysql_async_wasi = { version = "0.33", features = [ "default-rustls" ] }
+zstd-sys = "=2.0.9"
 tokio_wasi = { version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
