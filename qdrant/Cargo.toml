@@ -15,4 +15,4 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 url = "2.3"
 tokio = { version = "1", features = ["io-util", "fs", "net", "time", "rt", "macros"] }
-qdrant_rest_client = { version = "0.0.4", git="https://github.com/L-jasmine/qdrant-rest-client.git", branch = "bump/remove_rustls_plugin" }
+qdrant_rest_client = "0.1.0"
