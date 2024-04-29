@@ -3,10 +3,16 @@ name = "qdrant_examples"
 version = "0.1.0"
 edition = "2021"
 
+[patch.crates-io]
+socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
+reqwest = { git = "https://github.com/second-state/wasi_reqwest.git", branch = "0.11.x" }
+hyper = { git = "https://github.com/second-state/wasi_hyper.git", branch = "v0.14.x" }
+tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
+
 [dependencies]
 anyhow = "1.0"
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 url = "2.3"
-tokio_wasi = { version = "1", features = ["io-util", "fs", "net", "time", "rt", "macros"] }
-qdrant_rest_client = "0.0.1"
+tokio = { version = "1", features = ["io-util", "fs", "net", "time", "rt", "macros"] }
+qdrant_rest_client = { version = "0.0.4", git="https://github.com/L-jasmine/qdrant-rest-client.git", branch = "bump/remove_rustls_plugin" }
