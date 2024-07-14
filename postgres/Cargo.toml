@@ -3,6 +3,18 @@ name = "crud"
 version = "0.1.0"
 edition = "2021"
 
+[patch.crates-io]
+tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.36.x" }
+socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
+tokio-postgres = { git = "https://github.com/second-state/rust-postgres.git" }
+
 [dependencies]
-tokio-postgres_wasi = "0.7"
-tokio_wasi = { version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
+tokio-postgres = "0.7"
+tokio = { version = "1", features = [
+    "io-util",
+    "fs",
+    "net",
+    "time",
+    "rt",
+    "macros",
+] }
