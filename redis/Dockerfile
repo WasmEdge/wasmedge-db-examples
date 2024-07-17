@@ -7,7 +7,7 @@ COPY . /src
 RUN --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/cache \
     --mount=type=cache,target=/usr/local/cargo/registry/index \
-    cargo build --target wasm32-wasi --release
+    RUSTFLAGS="--cfg wasmedge --cfg tokio_unstable" cargo build --target wasm32-wasi --release
 
 FROM scratch AS client
 ENTRYPOINT [ "wasmedge-redis-client-examples.wasm" ]
