@@ -8,7 +8,7 @@ tokio = { git = "https://github.com/second-state/wasi_tokio.git", branch = "v1.3
 socket2 = { git = "https://github.com/second-state/socket2.git", branch = "v0.5.x" }
 
 [dependencies]
-mysql_async = { version = "0.34", default-features=false, features = [ "default-rustls" ], git="https://github.com/blackbeam/mysql_async.git" }
+mysql_async = { version = "0.34", default-features=false, features = [ "default-rustls" ], git="https://github.com/blackbeam/mysql_async.git" ,rev="08b7b70"}
 zstd-sys = "=2.0.9"
 time = "0.3"
 tokio = { version = "1", features = [ "io-util", "fs", "net", "time", "rt", "macros"] }
