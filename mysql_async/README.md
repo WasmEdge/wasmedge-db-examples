@@ -17,14 +17,14 @@ curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/insta
 You can run the examples against an unencrypted local database using the following commands:
 
 ```bash
-cargo build --target wasm32-wasi
-wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasi/debug/crud.wasm
+cargo build --target wasm32-wasip1
+wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasip1/debug/crud.wasm
 ```
 
 Or, you can use TLS to connect to a cloud database.
 
 ```bash
-cargo build --target wasm32-wasi
-wasmedge --env "DATABASE_SSL=1" --env "DATABASE_URL=mysql://user:passwd@rds.azure.ipaddr:3306/mysql" target/wasm32-wasi/debug/crud.wasm
+cargo build --target wasm32-wasip1
+wasmedge --env "DATABASE_SSL=1" --env "DATABASE_URL=mysql://user:passwd@rds.azure.ipaddr:3306/mysql" target/wasm32-wasip1/debug/crud.wasm
 ```
 

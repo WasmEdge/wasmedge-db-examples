@@ -15,8 +15,8 @@ Prerequisites:
 The following commands build and run the example.
 
 ```bash
-cargo build --target wasm32-wasi --release
-wasmedge --env "DATABASE_URL=postgres://wasmedge:rocks@localhost/testdb" target/wasm32-wasi/release/crud.wasm
+cargo build --target wasm32-wasip1 --release
+wasmedge --env "DATABASE_URL=postgres://wasmedge:rocks@localhost/testdb" target/wasm32-wasip1/release/crud.wasm
 ```
 
 ## Docker usage

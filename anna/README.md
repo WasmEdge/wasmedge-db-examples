@@ -22,6 +22,6 @@ Then, build and run the example app in this repo:
 ```sh
 $ git clone https://github.com/WasmEdge/wasmedge-db-examples.git
 $ cd wasmedge-db-examples/anna
-$ cargo build --target wasm32-wasi
-$ /path/to/wasmedge --dir .:. target/wasm32-wasi/debug/putget.wasm
+$ cargo build --target wasm32-wasip1
+$ /path/to/wasmedge --dir .:. target/wasm32-wasip1/debug/putget.wasm
 ```
