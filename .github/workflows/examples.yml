@@ -232,12 +232,6 @@ jobs:
         sleep 5
         mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
         mysql -e "SET GLOBAL max_allowed_packet = 36700160;" -uroot -proot
-        mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = WARN;" -uroot -proot
-        mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = ON;" -uroot -proot
-        mysql -e "SET @@GLOBAL.GTID_MODE = OFF_PERMISSIVE;" -uroot -proot
-        mysql -e "SET @@GLOBAL.GTID_MODE = ON_PERMISSIVE;" -uroot -proot
-        mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
-        mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
 
     - name: Install and run Redis
       run: |
