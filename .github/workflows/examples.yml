@@ -249,6 +249,12 @@ jobs:
         psql -d testdb -c "ALTER USER wasmedge PASSWORD 'mysecret';"
         psql -d testdb -c 'SELECT datname FROM pg_catalog.pg_database'
 
+    - name: Install and run GreptimeDB
+      run: |
+        curl -L https://github.com/GreptimeTeam/greptimedb/raw/develop/scripts/install.sh | sh
+        ./greptime standalone start &
+        sleep 3
+
     - name: Install and run Qdrant
       run: |
         curl -sL "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
@@ -269,10 +275,12 @@ jobs:
           exit 1
         fi
 
-    - name: GreptimeDB examples (build only)
+    - name: GreptimeDB examples
       run: |
         cd greptimedb
         cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge --env "DATABASE_URL=mysql://localhost:4002/public" target/wasm32-wasip1/release/greptimedb.wasm 2>&1)
+        echo "$resp"
 
     - name: MySQL simple examples
       run: |
