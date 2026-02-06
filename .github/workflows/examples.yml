@@ -60,8 +60,10 @@ jobs:
 
     - name: Install and run GreptimeDB
       run: |
-        curl -L https://github.com/GreptimeTeam/greptimedb/raw/develop/scripts/install.sh | sh
+        GREPTIMEDB_VERSION=$(curl -sL "https://api.github.com/repos/GreptimeTeam/greptimedb/releases" | grep -oE '"tag_name": "v[^"]*"' | grep -v nightly | head -1 | grep -oE 'v[^"]*')
+        curl -sL "https://github.com/GreptimeTeam/greptimedb/releases/download/${GREPTIMEDB_VERSION}/greptime-linux-amd64-${GREPTIMEDB_VERSION}.tar.gz" | tar xz --strip-components=1
         ./greptime standalone start &
+        sleep 3
 
     - name: Install and run Qdrant in Docker
       run: |
@@ -251,7 +253,8 @@ jobs:
 
     - name: Install and run GreptimeDB
       run: |
-        curl -L https://github.com/GreptimeTeam/greptimedb/raw/develop/scripts/install.sh | sh
+        GREPTIMEDB_VERSION=$(curl -sL "https://api.github.com/repos/GreptimeTeam/greptimedb/releases" | grep -oE '"tag_name": "v[^"]*"' | grep -v nightly | head -1 | grep -oE 'v[^"]*')
+        curl -sL "https://github.com/GreptimeTeam/greptimedb/releases/download/${GREPTIMEDB_VERSION}/greptime-darwin-arm64-${GREPTIMEDB_VERSION}.tar.gz" | tar xz --strip-components=1
         ./greptime standalone start &
         sleep 3
 
