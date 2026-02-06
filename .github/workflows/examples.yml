@@ -251,9 +251,8 @@ jobs:
 
     - name: Install and run Qdrant
       run: |
-        curl -sL "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz" | tar xz
-        mkdir -p qdrant_storage
-        nohup ./qdrant --storage-snapshot-path ./qdrant_storage &
+        curl -sL "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz" | tar xz -C /tmp/
+        nohup /tmp/qdrant &
         sleep 3
         curl -s http://localhost:6333/healthz || echo "Qdrant health check"
 
