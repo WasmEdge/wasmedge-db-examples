@@ -35,7 +35,7 @@ for arg in "$@"; do
     --build-only)  BUILD_ONLY=true ;;
     --skip-install) SKIP_INSTALL=true ;;
     --help|-h)
-      sed -n '3,13p' "$0"
+      sed -n '3,18p' "$0"
       exit 0
       ;;
     *) echo "Unknown option: $arg"; exit 1 ;;
