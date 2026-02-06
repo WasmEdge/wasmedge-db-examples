@@ -159,7 +159,7 @@ build_project() {
   local dir="$ROOT_DIR/$name"
 
   info "Building $name..."
-  if (cd "$dir" && cargo build --target wasm32-wasip1 --release 2>&1); then
+  if (cd "$dir" && cargo build --target wasm32-wasip1 --release); then
     ok "Build: $name"
     return 0
   else
