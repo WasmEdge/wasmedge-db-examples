@@ -8,7 +8,7 @@
 You can compile and run the examples using the following commands:
 
 ```bash
-cargo build --target wasm32-wasi
-wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasi/debug/query.wasm
-wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasi/debug/insert.wasm
+cargo build --target wasm32-wasip1
+wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasip1/debug/query.wasm
+wasmedge --env "DATABASE_URL=mysql://user:passwd@127.0.0.1:3306/mysql" target/wasm32-wasip1/debug/insert.wasm
 ```

@@ -20,5 +20,5 @@ You can compile and run the examples using the following commands:
 
 ```bash
 cargo build
-wasmedge --env "DATABASE_URL=mysql://user:passwd@host:4002/dbname" target/wasm32-wasi/debug/greptimedb.wasm
+wasmedge --env "DATABASE_URL=mysql://user:passwd@host:4002/dbname" target/wasm32-wasip1/debug/greptimedb.wasm
 ```

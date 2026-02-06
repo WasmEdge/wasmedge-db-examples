@@ -11,8 +11,8 @@ Prerequisites:
 The following commands build and run the example.
 
 ```bash
-cargo build --target wasm32-wasi --release
-wasmedge --env "REDIS_URL=redis://localhost/" target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm
+cargo build --target wasm32-wasip1 --release
+wasmedge --env "REDIS_URL=redis://localhost/" target/wasm32-wasip1/release/wasmedge-redis-client-examples.wasm
 ```
 
 ## Docker usage

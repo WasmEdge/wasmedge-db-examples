@@ -13,12 +13,12 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  linux:
 
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Install apt-get packages
       run: |
@@ -82,18 +82,26 @@ jobs:
 
     - name: Install Rust target for wasm
       run: |
-        rustup target add wasm32-wasi
+        rustup target add wasm32-wasip1
+
+    - name: Install WASI SDK
+      run: |
+        WASI_SDK_VERSION=25
+        curl -L "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux.tar.gz" -o /tmp/wasi-sdk.tar.gz
+        sudo tar xzf /tmp/wasi-sdk.tar.gz -C /opt/
+        echo "WASI_SDK_PATH=/opt/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux" >> $GITHUB_ENV
+        echo "CC_wasm32_wasip1=/opt/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux/bin/clang" >> $GITHUB_ENV
+        echo "AR_wasm32_wasip1=/opt/wasi-sdk-${WASI_SDK_VERSION}.0-x86_64-linux/bin/ar" >> $GITHUB_ENV
 
     - name: Install WasmEdge
       run: |
-        VERSION=0.14.0
-        curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- --version=$VERSION -p /usr/local
+        curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | sudo bash -s -- -p /usr/local
 
     - name: MySQL async examples
       run: |
         cd mysql_async
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" crud.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"Bobcat"* ]]; then
@@ -106,17 +114,17 @@ jobs:
     - name: GreptimeDB examples
       run: |
         cd greptimedb
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/greptimedb.wasm greptimedb.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/greptimedb.wasm greptimedb.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://localhost:4002/public" greptimedb.wasm 2>&1)
         echo "$resp"
 
     - name: MySQL simple examples
       run: |
         cd mysql
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/query.wasm query.wasm
-        wasmedge compile target/wasm32-wasi/release/insert.wasm insert.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/query.wasm query.wasm
+        wasmedge compile target/wasm32-wasip1/release/insert.wasm insert.wasm
         resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" query.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"localhost"* ]]; then
@@ -137,8 +145,8 @@ jobs:
     - name: Redis examples
       run: |
         cd redis
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/wasmedge-redis-client-examples.wasm wasmedge-redis-client-examples.wasm
         resp=$(wasmedge --env "REDIS_URL=redis://localhost/" wasmedge-redis-client-examples.wasm 2>&1)
         echo "$resp"
         if [[ $resp == *"UTC"* ]]; then
@@ -151,24 +159,24 @@ jobs:
     - name: PostgresSQL examples
       run: |
         cd postgres
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/crud.wasm crud.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/crud.wasm crud.wasm
         resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/testdb" crud.wasm 2>&1)
         echo "$resp"
 
     - name: Qdrant examples
       run: |
         cd qdrant
-        cargo build --target wasm32-wasi --release
-        wasmedge compile target/wasm32-wasi/release/qdrant_examples.wasm qdrant_examples.wasm
+        cargo build --target wasm32-wasip1 --release
+        wasmedge compile target/wasm32-wasip1/release/qdrant_examples.wasm qdrant_examples.wasm
         resp=$(wasmedge qdrant_examples.wasm 2>&1)
         echo "$resp"
 
 #    - name: Anna KVS examples
 #      run: |
 #        cd anna
-#        cargo build --target wasm32-wasi --release
-#        wasmedgec target/wasm32-wasi/release/putget.wasm putget.wasm
+#        cargo build --target wasm32-wasip1 --release
+#        wasmedge compile target/wasm32-wasip1/release/putget.wasm putget.wasm
 #        resp=$(wasmedge putget.wasm 2>&1)
 #        echo "$resp"
 #        if [[ $resp == *"UTC"* ]]; then
@@ -191,3 +199,129 @@ jobs:
           echo -e "Execution Fail!"
           exit 1
         fi
+
+  macos:
+
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust target for wasm
+      run: |
+        rustup update stable
+        rustup target add wasm32-wasip1
+
+    - name: Install wasi-sdk
+      run: |
+        WASI_SDK_VERSION=25
+        curl -sL "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0-arm64-macos.tar.gz" | tar xz
+        echo "WASI_SDK_PATH=$(pwd)/wasi-sdk-${WASI_SDK_VERSION}.0-arm64-macos" >> $GITHUB_ENV
+        echo "CC_wasm32_wasip1=$(pwd)/wasi-sdk-${WASI_SDK_VERSION}.0-arm64-macos/bin/clang" >> $GITHUB_ENV
+        echo "AR_wasm32_wasip1=$(pwd)/wasi-sdk-${WASI_SDK_VERSION}.0-arm64-macos/bin/ar" >> $GITHUB_ENV
+
+    - name: Install latest WasmEdge
+      run: |
+        curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
+        echo "$HOME/.wasmedge/bin" >> $GITHUB_PATH
+
+    - name: Install and run MySQL
+      run: |
+        brew install mysql
+        brew services start mysql
+        sleep 5
+        mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';"
+        mysql -e "SET GLOBAL max_allowed_packet = 36700160;" -uroot -proot
+        mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = WARN;" -uroot -proot
+        mysql -e "SET @@GLOBAL.ENFORCE_GTID_CONSISTENCY = ON;" -uroot -proot
+        mysql -e "SET @@GLOBAL.GTID_MODE = OFF_PERMISSIVE;" -uroot -proot
+        mysql -e "SET @@GLOBAL.GTID_MODE = ON_PERMISSIVE;" -uroot -proot
+        mysql -e "SET @@GLOBAL.GTID_MODE = ON;" -uroot -proot
+        mysql -e "PURGE BINARY LOGS BEFORE now();" -uroot -proot
+
+    - name: Install and run Redis
+      run: |
+        brew install redis
+        brew services start redis
+        sleep 2
+
+    - name: Install and run PostgreSQL
+      run: |
+        brew install postgresql@14
+        brew services start postgresql@14
+        sleep 5
+        createuser -w wasmedge
+        createdb -O wasmedge testdb
+        psql -d testdb -c "ALTER USER wasmedge PASSWORD 'mysecret';"
+        psql -d testdb -c 'SELECT datname FROM pg_catalog.pg_database'
+
+    - name: Install and run Qdrant
+      run: |
+        mkdir qdrant_storage
+        docker run -d -p 6333:6333 -p 6334:6334 -v $(pwd)/qdrant_storage:/qdrant/storage:z qdrant/qdrant
+
+    - name: MySQL async examples
+      run: |
+        cd mysql_async
+        cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" target/wasm32-wasip1/release/crud.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"Bobcat"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+
+    - name: GreptimeDB examples (build only)
+      run: |
+        cd greptimedb
+        cargo build --target wasm32-wasip1 --release
+
+    - name: MySQL simple examples
+      run: |
+        cd mysql
+        cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@127.0.0.1:3306/mysql" target/wasm32-wasip1/release/query.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"localhost"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+        resp=$(wasmedge --env "DATABASE_URL=mysql://root:root@localhost:3306/mysql" target/wasm32-wasip1/release/insert.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"foo"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+
+    - name: Redis examples
+      run: |
+        cd redis
+        cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge --env "REDIS_URL=redis://localhost/" target/wasm32-wasip1/release/wasmedge-redis-client-examples.wasm 2>&1)
+        echo "$resp"
+        if [[ $resp == *"UTC"* ]]; then
+          echo -e "Execution Success!"
+        else
+          echo -e "Execution Fail!"
+          exit 1
+        fi
+
+    - name: PostgresSQL examples
+      run: |
+        cd postgres
+        cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge --env "DATABASE_URL=postgres://wasmedge:mysecret@localhost/testdb" target/wasm32-wasip1/release/crud.wasm 2>&1)
+        echo "$resp"
+
+    - name: Qdrant examples
+      run: |
+        cd qdrant
+        cargo build --target wasm32-wasip1 --release
+        resp=$(wasmedge target/wasm32-wasip1/release/qdrant_examples.wasm 2>&1)
+        echo "$resp"
