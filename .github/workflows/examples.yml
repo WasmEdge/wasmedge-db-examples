@@ -251,8 +251,11 @@ jobs:
 
     - name: Install and run Qdrant
       run: |
-        mkdir qdrant_storage
-        docker run -d -p 6333:6333 -p 6334:6334 -v $(pwd)/qdrant_storage:/qdrant/storage:z qdrant/qdrant
+        curl -sL "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-aarch64-apple-darwin.tar.gz" | tar xz
+        mkdir -p qdrant_storage
+        nohup ./qdrant --storage-snapshot-path ./qdrant_storage &
+        sleep 3
+        curl -s http://localhost:6333/healthz || echo "Qdrant health check"
 
     - name: MySQL async examples
       run: |
